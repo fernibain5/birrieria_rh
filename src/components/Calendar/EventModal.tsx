@@ -205,7 +205,7 @@ const EventModal: React.FC<EventModalProps> = ({
                     type="button"
                     className={`h-8 rounded-md ${option.value} ${
                       color === option.value
-                        ? "ring-2 ring-offset-2 ring-green-500"
+                        ? "ring-2 ring-offset-2 ring-brand-secondary"
                         : ""
                     } ${readOnly ? "cursor-default" : ""}`}
                     onClick={() => !readOnly && setColor(option.value)}

@@ -6,6 +6,7 @@ export interface AttendanceInfo {
   endTime: string;
   evento: string;
   date: string;
+  lugar: string;
 }
 
 export interface AttendanceEmployee {
@@ -123,6 +124,28 @@ export async function generateAttendanceListDocx({
                       right: { style: BorderStyle.NONE },
                     },
                     verticalAlign: 'center',
+                  }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [
+                      new Paragraph({
+                        children: [
+                          new TextRun({ text: 'Lugar: ', bold: true }),
+                          new TextRun({ text: `${attendanceInfo.lugar || '_'.repeat(80)}` }),
+                        ],
+                      }),
+                    ],
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    borders: {
+                      top: { style: BorderStyle.NONE },
+                      bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+                      left: { style: BorderStyle.NONE },
+                      right: { style: BorderStyle.NONE },
+                    },
+                    columnSpan: 2,
                   }),
                 ],
               }),
@@ -405,39 +428,6 @@ export async function generateAttendanceListDocx({
                           spacing: { before: 100, after: 100 }
                         })
                       ],
-                      verticalAlign: 'center',
-                    }),
-                  ],
-                  height: { value: 1000, rule: 'atLeast' },
-                })
-              ),
-              // Add empty rows to ensure at least 15 rows total
-              ...Array.from({ length: Math.max(0, 15 - employees.length) }, (_, idx) =>
-                new TableRow({
-                  children: [
-                    new TableCell({
-                      children: [
-                        new Paragraph({ 
-                          children: [new TextRun({ text: String(employees.length + idx + 1), size: 20 })], 
-                          alignment: AlignmentType.CENTER 
-                        })
-                      ],
-                      verticalAlign: 'center',
-                    }),
-                    new TableCell({
-                      children: [new Paragraph({ text: '' })],
-                      verticalAlign: 'center',
-                    }),
-                    new TableCell({
-                      children: [new Paragraph({ text: '' })],
-                      verticalAlign: 'center',
-                    }),
-                    new TableCell({
-                      children: [new Paragraph({ text: '' })],
-                      verticalAlign: 'center',
-                    }),
-                    new TableCell({
-                      children: [new Paragraph({ text: '' })],
                       verticalAlign: 'center',
                     }),
                   ],

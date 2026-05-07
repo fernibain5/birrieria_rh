@@ -1,20 +1,35 @@
 import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { createMinuta, getAllMinutas } from "../services/minutaService";
-import { Minuta } from "../types/Minuta";
+import { Minuta, MinutaArea, MinutaAttendee, MinutaGeneralInfo } from "../types/Minuta";
 import { UserRole, UserBranch } from "../types/auth";
 import Step1GeneralInfo from '../components/Minutas/Step1GeneralInfo';
 import Step2Attendance from '../components/Minutas/Step2Attendance';
 import { generateMinutaDocx } from '../utils/minutaDocxGenerator';
 import { generateAttendanceListDocx } from '../utils/attendanceListGenerator';
+import { getAllUsers } from '../services/userService';
 
 interface AreaDetail {
   area: string;
   planteamiento: string;
   seguimiento: string;
   fechaCompromiso: string;
-  encargadoUid: string;
+  encargadoUid?: string;
+  encargadoUids: string[];
 }
+
+const getUserLabel = (user: { displayName?: string; email?: string; uid: string }) =>
+  user.displayName || user.email || user.uid;
+
+const toAttendanceInfo = (generalInfo: Partial<MinutaGeneralInfo>): MinutaGeneralInfo => ({
+  startTime: generalInfo.startTime || '',
+  endTime: generalInfo.endTime || '',
+  evento: generalInfo.evento || '',
+  date: generalInfo.date || '',
+  lugar: generalInfo.lugar || '',
+  lugarOption: generalInfo.lugarOption,
+  customLugar: generalInfo.customLugar,
+});
 
 const MinutasPage: React.FC = () => {
   const { userProfile } = useAuth();
@@ -123,6 +138,104 @@ const MinutasPage: React.FC = () => {
     setMessage(null);
   };
 
+  const buildAreasWithNames = async (): Promise<MinutaArea[]> => {
+    const allUsers = await getAllUsers();
+
+    return areas.map(area => {
+      const responsibleUids = area.encargadoUids || (area.encargadoUid ? [area.encargadoUid] : []);
+      const responsibleNames = responsibleUids
+        .map(uid => {
+          const responsible = allUsers.find(user => user.uid === uid) || attendees.find(a => a.uid === uid);
+          return responsible ? getUserLabel(responsible) : '';
+        })
+        .filter(Boolean);
+
+      return {
+        ...area,
+        encargadoName: responsibleNames.join(', '),
+      };
+    });
+  };
+
+  const buildAttendeeSnapshot = (): MinutaAttendee[] =>
+    attendees.map(attendee => ({
+      uid: attendee.uid,
+      displayName: attendee.displayName || '',
+      email: attendee.email || '',
+      area: attendee.role || '',
+    }));
+
+  const downloadMinuta = async (minuta?: Minuta) => {
+    const savedGeneralInfo = minuta?.generalInfo || toAttendanceInfo(generalInfo);
+    const savedAreas = minuta?.areas || await buildAreasWithNames();
+    const savedAttendees = minuta?.attendees || buildAttendeeSnapshot();
+
+    await generateMinutaDocx({
+      generalInfo: savedGeneralInfo,
+      areas: savedAreas,
+      attendees: savedAttendees,
+    });
+  };
+
+  const downloadAttendance = async (minuta?: Minuta) => {
+    const savedGeneralInfo = minuta?.generalInfo || toAttendanceInfo(generalInfo);
+    const savedAttendees = minuta?.attendees || buildAttendeeSnapshot();
+
+    await generateAttendanceListDocx({
+      attendanceInfo: savedGeneralInfo,
+      employees: savedAttendees,
+    });
+  };
+
+  const saveCurrentMinuta = async () => {
+    if (!userProfile) return;
+
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const savedAreas = await buildAreasWithNames();
+      const savedAttendees = buildAttendeeSnapshot();
+      const savedGeneralInfo = toAttendanceInfo(generalInfo);
+
+      const branch = savedGeneralInfo.lugar === 'San Pedro' || savedGeneralInfo.lugar === 'Las Quintas'
+        ? savedGeneralInfo.lugar
+        : userProfile.branch;
+
+      await createMinuta({
+        supervisor: userProfile.displayName || userProfile.email,
+        branch,
+        role: userProfile.role,
+        whatHappened: savedAreas.map(area => area.planteamiento).join('\n'),
+        expectations: savedAreas.map(area => area.seguimiento).join('\n'),
+        createdBy: userProfile.uid,
+        generalInfo: savedGeneralInfo,
+        areas: savedAreas,
+        attendees: savedAttendees,
+      }, userProfile.uid);
+
+      setMessage({
+        type: "success",
+        text: "Minuta guardada exitosamente. Ahora puedes descargarla desde el historial.",
+      });
+
+      await loadMinutas();
+      setStep(1);
+      setGeneralInfo({});
+      setTopics([]);
+      setAttendees([]);
+      setAreas([]);
+    } catch (error) {
+      console.error("Error saving minuta:", error);
+      setMessage({
+        type: "error",
+        text: "Error al guardar la minuta. Por favor, inténtalo de nuevo.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const roleOptions: { value: UserRole; label: string }[] = [
     { value: "mesero", label: "Mesero" },
     { value: "tortillero", label: "Tortillero" },
@@ -141,7 +254,7 @@ const MinutasPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-800">Minutas</h1>
         <button
           onClick={loadMinutas}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primaryHover transition-colors"
         >
           Ver Historial
         </button>
@@ -176,47 +289,8 @@ const MinutasPage: React.FC = () => {
             <Step2Attendance
               attendees={attendees}
               setAttendees={setAttendees}
-              onNext={() => {/* handle submit */}}
               onBack={() => setStep(1)}
-              onDownload={async () => {
-                // Map encargadoUid to name for each area
-                const areasWithNames = areas.map(area => {
-                  const responsible = attendees.find(a => a.uid === area.encargadoUid);
-                  return {
-                    ...area,
-                    encargadoName: responsible ? (responsible.displayName || responsible.email || responsible.uid) : '',
-                  };
-                });
-                await generateMinutaDocx({
-                  generalInfo,
-                  areas: areasWithNames,
-                  attendees,
-                });
-              }}
-              onDownloadAttendance={async () => {
-                const attendanceInfo = {
-                  startTime: generalInfo.startTime || '',
-                  endTime: generalInfo.endTime || '',
-                  evento: generalInfo.evento || '',
-                  date: generalInfo.date || ''
-                };
-                
-                const employeesWithArea = attendees.map(attendee => ({
-                  uid: attendee.uid,
-                  displayName: attendee.displayName,
-                  email: attendee.email,
-                  area: attendee.area || '' // Add area if available in user profile
-                }));
-                
-                await generateAttendanceListDocx({
-                  attendanceInfo,
-                  employees: employeesWithArea
-                });
-              }}
-              onSaveMinuta={() => {
-                // TODO: Implement save minuta logic
-                console.log('Save minuta');
-              }}
+              onSaveMinuta={saveCurrentMinuta}
             />
           )}
         </div>
@@ -250,45 +324,67 @@ const MinutasPage: React.FC = () => {
                       <strong className="text-sm text-gray-600">
                         Supervisor:
                       </strong>
-                      <p className="text-gray-800">{minuta.supervisor}</p>
+                      <p className="text-gray-800">{minuta.supervisor || 'Sin supervisor'}</p>
                     </div>
                     <div>
                       <strong className="text-sm text-gray-600">
-                        Sucursal:
+                        Lugar:
                       </strong>
-                      <p className="text-gray-800">{minuta.branch}</p>
+                      <p className="text-gray-800">{minuta.generalInfo?.lugar || minuta.branch || 'Sin lugar'}</p>
                     </div>
                     <div>
-                      <strong className="text-sm text-gray-600">Rol:</strong>
-                      <p className="text-gray-800">{minuta.role}</p>
+                      <strong className="text-sm text-gray-600">Evento:</strong>
+                      <p className="text-gray-800">{minuta.generalInfo?.evento || minuta.role || 'Sin evento'}</p>
                     </div>
                   </div>
 
-                  <div className="mb-3">
-                    <strong className="text-sm text-gray-600">
-                      ¿Qué pasó?
-                    </strong>
-                    <p className="text-gray-800 mt-1">{minuta.whatHappened}</p>
-                  </div>
+                  {minuta.areas && minuta.areas.length > 0 ? (
+                    <div className="mb-3">
+                      <strong className="text-sm text-gray-600">Partidas:</strong>
+                      <div className="mt-2 space-y-2">
+                        {minuta.areas.slice(0, 3).map((area, idx) => (
+                          <div key={`${minuta.id}-area-${idx}`} className="rounded border bg-white p-3">
+                            <p className="font-medium text-gray-800">{idx + 1}. {area.area}</p>
+                            <p className="text-sm text-gray-600">{area.planteamiento}</p>
+                            <p className="text-sm text-gray-500">Responsable: {area.encargadoName || 'Sin responsable'}</p>
+                          </div>
+                        ))}
+                        {minuta.areas.length > 3 && (
+                          <p className="text-sm text-gray-500">+{minuta.areas.length - 3} partidas más</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-3">
+                      <strong className="text-sm text-gray-600">
+                        ¿Qué pasó?
+                      </strong>
+                      <p className="text-gray-800 mt-1">{minuta.whatHappened}</p>
+                    </div>
+                  )}
 
-                  <div className="mb-3">
+                  {minuta.expectations && (
+                    <div className="mb-3">
                     <strong className="text-sm text-gray-600">
                       Expectativas:
                     </strong>
                     <p className="text-gray-800 mt-1">{minuta.expectations}</p>
-                  </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                     <div>
-                      <strong>Próxima reunión:</strong>
+                      <strong>{minuta.nextMeetingDate ? 'Próxima reunión:' : 'Fecha de reunión:'}</strong>
                       <p>
-                        {minuta.nextMeetingDate.toLocaleDateString("es-ES", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {minuta.nextMeetingDate
+                          ? minuta.nextMeetingDate.toLocaleDateString("es-ES", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : minuta.generalInfo?.date || 'Sin fecha'}
                       </p>
                     </div>
                     <div>
@@ -296,6 +392,23 @@ const MinutasPage: React.FC = () => {
                       <p>{minuta.createdAt.toLocaleDateString("es-ES")}</p>
                     </div>
                   </div>
+
+                  {minuta.generalInfo && (
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                      <button
+                        onClick={() => downloadMinuta(minuta)}
+                        className="px-4 py-2 bg-brand-primary text-white rounded hover:bg-brand-primaryHover transition-colors"
+                      >
+                        Descargar Minuta
+                      </button>
+                      <button
+                        onClick={() => downloadAttendance(minuta)}
+                        className="px-4 py-2 bg-brand-secondary text-white rounded hover:bg-brand-secondaryHover transition-colors"
+                      >
+                        Descargar Asistencia
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))
             )}

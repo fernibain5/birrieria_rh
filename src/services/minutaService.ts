@@ -17,6 +17,7 @@ import { getAllUsers } from './userService';
 import { sendMinutaNotification, logMinutaNotification } from './whatsappService';
 
 const MINUTAS_COLLECTION = 'minutas';
+type CreateMinutaData = Omit<Minuta, 'id' | 'createdAt' | 'eventId'>;
 
 // Convert Firestore timestamp to Date
 const convertTimestampToDate = (timestamp: any): Date => {
@@ -34,74 +35,116 @@ const convertDateToTimestamp = (date: Date): Timestamp => {
   return Timestamp.fromDate(date);
 };
 
+const removeUndefinedValues = <T>(value: T): T => {
+  if (Array.isArray(value)) {
+    return value.map(removeUndefinedValues) as T;
+  }
+
+  if (value && typeof value === 'object' && !(value instanceof Date) && !(value instanceof Timestamp)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, entryValue]) => entryValue !== undefined)
+        .map(([key, entryValue]) => [key, removeUndefinedValues(entryValue)])
+    ) as T;
+  }
+
+  return value;
+};
+
+const mapMinutaDoc = (docId: string, data: any): Minuta => ({
+  id: docId,
+  supervisor: data.supervisor,
+  branch: data.branch,
+  role: data.role,
+  whatHappened: data.whatHappened,
+  expectations: data.expectations,
+  nextMeetingDate: data.nextMeetingDate ? convertTimestampToDate(data.nextMeetingDate) : undefined,
+  createdAt: convertTimestampToDate(data.createdAt),
+  createdBy: data.createdBy,
+  eventId: data.eventId,
+  generalInfo: data.generalInfo,
+  areas: data.areas || [],
+  attendees: data.attendees || [],
+});
+
 // Create a new minuta and associated event
 export const createMinuta = async (
-  minutaData: Omit<Minuta, 'id' | 'createdAt' | 'eventId'>,
+  minutaData: CreateMinutaData,
   createdBy: string
 ): Promise<string> => {
   try {
     // First, create the minuta
-    const minuta = {
+    const minuta = removeUndefinedValues({
       ...minutaData,
-      nextMeetingDate: convertDateToTimestamp(minutaData.nextMeetingDate),
+      nextMeetingDate: minutaData.nextMeetingDate
+        ? convertDateToTimestamp(minutaData.nextMeetingDate)
+        : undefined,
       createdAt: convertDateToTimestamp(new Date()),
       createdBy,
-    };
+    });
 
     const minutaRef = await addDoc(collection(db, MINUTAS_COLLECTION), minuta);
 
-    // Create an event for the next meeting date
-    const eventTitle = `Reunión de Seguimiento - ${minutaData.role} (${minutaData.branch})`;
-    const eventDescription = `Reunión de seguimiento para el rol ${minutaData.role} en sucursal ${minutaData.branch}.\n\nSupervisor: ${minutaData.supervisor}\n\nExpectativas: ${minutaData.expectations}`;
+    if (
+      minutaData.nextMeetingDate &&
+      minutaData.role &&
+      minutaData.branch &&
+      minutaData.supervisor &&
+      minutaData.expectations
+    ) {
+      // Create an event for the next meeting date
+      const eventTitle = `Reunión de Seguimiento - ${minutaData.role} (${minutaData.branch})`;
+      const eventDescription = `Reunión de seguimiento para el rol ${minutaData.role} en sucursal ${minutaData.branch}.\n\nSupervisor: ${minutaData.supervisor}\n\nExpectativas: ${minutaData.expectations}`;
 
-    const eventId = await addEvent({
-      title: eventTitle,
-      description: eventDescription,
-      date: minutaData.nextMeetingDate,
-      color: 'bg-purple-100 text-purple-800',
-      type: 'minuta',
-      createdBy,
-      createdAt: new Date(),
-      targetRole: minutaData.role,
-      targetBranch: minutaData.branch,
-      minutaId: minutaRef.id,
-    });
+      const eventId = await addEvent({
+        title: eventTitle,
+        description: eventDescription,
+        date: minutaData.nextMeetingDate,
+        color: 'bg-purple-100 text-purple-800',
+        type: 'minuta',
+        createdBy,
+        createdAt: new Date(),
+        targetRole: minutaData.role,
+        targetBranch: minutaData.branch,
+        minutaId: minutaRef.id,
+      });
 
-    // Update the minuta with the event ID
-    await updateDoc(doc(db, MINUTAS_COLLECTION, minutaRef.id), {
-      eventId,
-    });
+      // Update the minuta with the event ID
+      await updateDoc(doc(db, MINUTAS_COLLECTION, minutaRef.id), {
+        eventId,
+      });
 
-    // Get users to notify (admins + users with specific role and branch)
-    const targetUsers = await getUsersToNotify(minutaData.role, minutaData.branch);
-    
-    console.log(`Minuta created for ${minutaData.role} at ${minutaData.branch}`);
-    console.log(`Event created with ID: ${eventId}`);
-    console.log(`Target users for notification:`, targetUsers.length);
-
-    // Send WhatsApp notifications
-    try {
-      await sendMinutaNotification(
-        minutaData.supervisor,
-        minutaData.role,
-        minutaData.branch,
-        minutaData.nextMeetingDate,
-        minutaData.expectations,
-        targetUsers
-      );
-    } catch (whatsappError) {
-      console.error('Error sending WhatsApp notifications:', whatsappError);
-      // Don't fail the minuta creation if WhatsApp fails
+      // Get users to notify (admins + users with specific role and branch)
+      const targetUsers = await getUsersToNotify(minutaData.role, minutaData.branch);
       
-      // Log the notification details for debugging
-      logMinutaNotification(
-        minutaData.supervisor,
-        minutaData.role,
-        minutaData.branch,
-        minutaData.nextMeetingDate,
-        minutaData.expectations,
-        targetUsers
-      );
+      console.log(`Minuta created for ${minutaData.role} at ${minutaData.branch}`);
+      console.log(`Event created with ID: ${eventId}`);
+      console.log(`Target users for notification:`, targetUsers.length);
+
+      // Send WhatsApp notifications
+      try {
+        await sendMinutaNotification(
+          minutaData.supervisor,
+          minutaData.role,
+          minutaData.branch,
+          minutaData.nextMeetingDate,
+          minutaData.expectations,
+          targetUsers
+        );
+      } catch (whatsappError) {
+        console.error('Error sending WhatsApp notifications:', whatsappError);
+        // Don't fail the minuta creation if WhatsApp fails
+        
+        // Log the notification details for debugging
+        logMinutaNotification(
+          minutaData.supervisor,
+          minutaData.role,
+          minutaData.branch,
+          minutaData.nextMeetingDate,
+          minutaData.expectations,
+          targetUsers
+        );
+      }
     }
 
     return minutaRef.id;
@@ -120,19 +163,7 @@ export const getAllMinutas = async (): Promise<Minuta[]> => {
     
     const minutas: Minuta[] = [];
     querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      minutas.push({
-        id: doc.id,
-        supervisor: data.supervisor,
-        branch: data.branch,
-        role: data.role,
-        whatHappened: data.whatHappened,
-        expectations: data.expectations,
-        nextMeetingDate: convertTimestampToDate(data.nextMeetingDate),
-        createdAt: convertTimestampToDate(data.createdAt),
-        createdBy: data.createdBy,
-        eventId: data.eventId,
-      });
+      minutas.push(mapMinutaDoc(doc.id, doc.data()));
     });
     
     return minutas;
@@ -159,19 +190,7 @@ export const getMinutasByRoleAndBranch = async (
     
     const minutas: Minuta[] = [];
     querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      minutas.push({
-        id: doc.id,
-        supervisor: data.supervisor,
-        branch: data.branch,
-        role: data.role,
-        whatHappened: data.whatHappened,
-        expectations: data.expectations,
-        nextMeetingDate: convertTimestampToDate(data.nextMeetingDate),
-        createdAt: convertTimestampToDate(data.createdAt),
-        createdBy: data.createdBy,
-        eventId: data.eventId,
-      });
+      minutas.push(mapMinutaDoc(doc.id, doc.data()));
     });
     
     return minutas;

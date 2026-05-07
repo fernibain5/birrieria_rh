@@ -6,7 +6,8 @@ export interface AreaDetail {
   planteamiento: string;
   seguimiento: string;
   fechaCompromiso: string;
-  encargadoUid: string;
+  encargadoUid?: string;
+  encargadoUids?: string[];
   encargadoName?: string;
 }
 
@@ -23,6 +24,8 @@ export interface MinutaAttendee {
   displayName?: string;
   email?: string;
 }
+
+const MINUTA_TABLE_COLUMN_WIDTHS = [648, 1620, 2160, 2160, 2052, 2160];
 
 // Helper function to fetch image as buffer
 async function fetchImageBuffer(imagePath: string): Promise<ArrayBuffer> {
@@ -285,42 +288,10 @@ export async function generateMinutaDocx({
             },
           }),
 
-          // "Asuntos a tratar" section
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Asuntos a tratar:', bold: true }),
-            ],
-            spacing: { before: 300, after: 100 },
-          }),
-          
-          // Empty box for "Asuntos a tratar"
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({
-                    children: [
-                      new Paragraph({ text: '' }),
-                      new Paragraph({ text: '' }),
-                      new Paragraph({ text: '' }),
-                    ],
-                    width: { size: 100, type: WidthType.PERCENTAGE },
-                  }),
-                ],
-                height: { value: 1200, rule: 'atLeast' },
-              }),
-            ],
-            borders: {
-              top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-              bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-              left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-              right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-            },
-          }),
           // Main table with proper styling
           new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
+            width: { size: '100%', type: WidthType.PERCENTAGE },
+            columnWidths: MINUTA_TABLE_COLUMN_WIDTHS,
             layout: TableLayoutType.FIXED,
             rows: [
               new TableRow({
@@ -333,7 +304,7 @@ export async function generateMinutaDocx({
                         alignment: AlignmentType.CENTER 
                       })
                     ],
-                    width: { size: 6, type: WidthType.PERCENTAGE },
+                    width: { size: MINUTA_TABLE_COLUMN_WIDTHS[0], type: WidthType.DXA },
                     shading: { fill: 'FFA500' }, // Orange background like in the image
                     verticalAlign: 'center',
                   }),
@@ -344,7 +315,7 @@ export async function generateMinutaDocx({
                         alignment: AlignmentType.CENTER 
                       })
                     ],
-                    width: { size: 15, type: WidthType.PERCENTAGE },
+                    width: { size: MINUTA_TABLE_COLUMN_WIDTHS[1], type: WidthType.DXA },
                     shading: { fill: 'FFA500' },
                     verticalAlign: 'center',
                   }),
@@ -355,7 +326,7 @@ export async function generateMinutaDocx({
                         alignment: AlignmentType.CENTER 
                       })
                     ],
-                    width: { size: 20, type: WidthType.PERCENTAGE },
+                    width: { size: MINUTA_TABLE_COLUMN_WIDTHS[2], type: WidthType.DXA },
                     shading: { fill: 'FFA500' },
                     verticalAlign: 'center',
                   }),
@@ -366,7 +337,7 @@ export async function generateMinutaDocx({
                         alignment: AlignmentType.CENTER 
                       })
                     ],
-                    width: { size: 20, type: WidthType.PERCENTAGE },
+                    width: { size: MINUTA_TABLE_COLUMN_WIDTHS[3], type: WidthType.DXA },
                     shading: { fill: 'FFA500' },
                     verticalAlign: 'center',
                   }),
@@ -377,7 +348,7 @@ export async function generateMinutaDocx({
                         alignment: AlignmentType.CENTER 
                       })
                     ],
-                    width: { size: 19, type: WidthType.PERCENTAGE },
+                    width: { size: MINUTA_TABLE_COLUMN_WIDTHS[4], type: WidthType.DXA },
                     shading: { fill: 'FFA500' },
                     verticalAlign: 'center',
                   }),
@@ -388,12 +359,12 @@ export async function generateMinutaDocx({
                         alignment: AlignmentType.CENTER 
                       })
                     ],
-                    width: { size: 20, type: WidthType.PERCENTAGE },
+                    width: { size: MINUTA_TABLE_COLUMN_WIDTHS[5], type: WidthType.DXA },
                     shading: { fill: 'FFA500' },
                     verticalAlign: 'center',
                   }),
                 ],
-                height: { value: 800, rule: 'atLeast' },
+                height: { value: 1120, rule: 'atLeast' },
               }),
               // Area rows
               ...areas.map((area, idx) =>
@@ -406,6 +377,7 @@ export async function generateMinutaDocx({
                           alignment: AlignmentType.CENTER 
                         })
                       ],
+                      width: { size: MINUTA_TABLE_COLUMN_WIDTHS[0], type: WidthType.DXA },
                       verticalAlign: 'center',
                     }),
                     new TableCell({
@@ -416,6 +388,7 @@ export async function generateMinutaDocx({
                           spacing: { before: 100, after: 100 }
                         })
                       ],
+                      width: { size: MINUTA_TABLE_COLUMN_WIDTHS[1], type: WidthType.DXA },
                       verticalAlign: 'center',
                       margins: { top: 100, bottom: 100, left: 100, right: 100 },
                     }),
@@ -427,6 +400,7 @@ export async function generateMinutaDocx({
                           spacing: { before: 100, after: 100 }
                         })
                       ],
+                      width: { size: MINUTA_TABLE_COLUMN_WIDTHS[2], type: WidthType.DXA },
                       verticalAlign: 'top',
                       margins: { top: 100, bottom: 100, left: 100, right: 100 },
                     }),
@@ -438,6 +412,7 @@ export async function generateMinutaDocx({
                           spacing: { before: 100, after: 100 }
                         })
                       ],
+                      width: { size: MINUTA_TABLE_COLUMN_WIDTHS[3], type: WidthType.DXA },
                       verticalAlign: 'top',
                       margins: { top: 100, bottom: 100, left: 100, right: 100 },
                     }),
@@ -449,6 +424,7 @@ export async function generateMinutaDocx({
                           spacing: { before: 100, after: 100 }
                         })
                       ],
+                      width: { size: MINUTA_TABLE_COLUMN_WIDTHS[4], type: WidthType.DXA },
                       verticalAlign: 'center',
                     }),
                     new TableCell({
@@ -459,42 +435,11 @@ export async function generateMinutaDocx({
                           spacing: { before: 100, after: 100 }
                         })
                       ],
-                      verticalAlign: 'center',
+                      width: { size: MINUTA_TABLE_COLUMN_WIDTHS[5], type: WidthType.DXA },
+                      verticalAlign: 'bottom',
                     }),
                   ],
-                  height: { value: 1000, rule: 'atLeast' }, // Increased height for better spacing
-                })
-              ),
-              // Add empty rows if there are fewer than 6 items (to match template)
-              ...Array.from({ length: Math.max(0, 6 - areas.length) }, () =>
-                new TableRow({
-                  children: [
-                    new TableCell({
-                      children: [new Paragraph({ text: '' })],
-                      verticalAlign: 'center',
-                    }),
-                    new TableCell({
-                      children: [new Paragraph({ text: '' })],
-                      verticalAlign: 'center',
-                    }),
-                    new TableCell({
-                      children: [new Paragraph({ text: '' })],
-                      verticalAlign: 'center',
-                    }),
-                    new TableCell({
-                      children: [new Paragraph({ text: '' })],
-                      verticalAlign: 'center',
-                    }),
-                    new TableCell({
-                      children: [new Paragraph({ text: '' })],
-                      verticalAlign: 'center',
-                    }),
-                    new TableCell({
-                      children: [new Paragraph({ text: '' })],
-                      verticalAlign: 'center',
-                    }),
-                  ],
-                  height: { value: 1000, rule: 'atLeast' },
+                  height: { value: 1400, rule: 'atLeast' },
                 })
               ),
             ],
@@ -520,19 +465,6 @@ export async function generateMinutaDocx({
             alignment: AlignmentType.RIGHT,
             spacing: { before: 400 },
           }),
-
-          // Attendees section (moved to end)
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Asistentes:', bold: true }),
-            ],
-            spacing: { before: 300, after: 100 },
-          }),
-          ...attendees.map((a, i) =>
-            new Paragraph({
-              text: `${i + 1}. ${a.displayName || a.email || a.uid}`,
-            })
-          ),
         ],
       },
     ],

@@ -163,7 +163,7 @@ export const ContractSelectionCard: React.FC<ContractSelectionCardProps> = ({ ty
             e.stopPropagation();
             onSelect(type);
           }}
-          className={`w-full px-6 py-3 bg-gradient-to-r ${info.colorClasses.gradientFrom} ${info.colorClasses.gradientTo} ${info.colorClasses.gradientHoverFrom} ${info.colorClasses.gradientHoverTo} text-white rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg`}
+          className="w-full px-6 py-3 bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primaryHover hover:to-brand-secondaryHover text-white rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
         >
           Crear Nuevo Contrato
         </button>

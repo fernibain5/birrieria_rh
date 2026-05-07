@@ -39,7 +39,7 @@ export const FormField: React.FC<FormFieldProps> = ({
         required={required}
         className={`w-full px-4 py-2 rounded-lg border ${
           error ? 'border-red-500' : 'border-slate-300'
-        } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+        } focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent transition-colors`}
       />
       {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
     </div>

@@ -18,13 +18,13 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onPreview }) => {
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center">
-            <FileText className="text-green-600 mr-3" size={24} />
+            <FileText className="text-brand-secondary mr-3" size={24} />
             <div>
               <h3 className="text-lg font-semibold text-gray-800 mb-1">
                 {document.title}
               </h3>
               <div className="flex items-center text-sm text-gray-500">
-                <span className="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs font-medium mr-2">
+                <span className="bg-brand-secondarySoft text-brand-primary px-2 py-1 rounded-full text-xs font-medium mr-2">
                   {document.fileType.toUpperCase()}
                 </span>
                 <span>Sucursal {document.sucursal}</span>
@@ -42,7 +42,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onPreview }) => {
         <div className="flex justify-end">
           <button
             onClick={() => onPreview(document)}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200"
+            className="flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primaryHover transition-colors duration-200"
           >
             <Eye size={16} className="mr-2" />
             Ver Documento

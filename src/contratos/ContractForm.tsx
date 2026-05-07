@@ -109,7 +109,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({ onBack, contractType
               {currentStep < steps.length - 1 ? (
                 <button
                   onClick={() => setCurrentStep(prev => prev + 1)}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white rounded-lg font-semibold flex items-center space-x-2"
+                  className="px-6 py-3 bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primaryHover hover:to-brand-secondaryHover text-white rounded-lg font-semibold flex items-center space-x-2"
                 >
                   <span>Siguiente</span>
                   <ArrowRight className="w-5 h-5" />
@@ -117,7 +117,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({ onBack, contractType
               ) : (
                 <button
                   onClick={() => setShowPreview(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white rounded-lg font-semibold flex items-center space-x-2"
+                  className="px-6 py-3 bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primaryHover hover:to-brand-secondaryHover text-white rounded-lg font-semibold flex items-center space-x-2"
                 >
                   <span>Vista Previa</span>
                   <Check className="w-5 h-5" />

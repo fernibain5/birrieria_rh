@@ -353,7 +353,7 @@ const CalendarPage: React.FC = () => {
             {!hasHolidaysForCurrentYear &&
               !processedYears.current.has(currentYear) && (
                 <button
-                  className="btn bg-green-600 text-white hover:bg-green-700 flex items-center justify-center text-sm sm:text-base px-3 py-2"
+                  className="btn bg-brand-secondary text-white hover:bg-brand-secondaryHover flex items-center justify-center text-sm sm:text-base px-3 py-2"
                   onClick={handleAddHolidaysForCurrentYear}
                   disabled={isAddingHolidays || isProcessingHolidays.current}
                 >
@@ -487,7 +487,7 @@ const CalendarPage: React.FC = () => {
             </button>
             
             {hasHolidaysForCurrentYear && (
-              <div className="flex items-center space-x-1 text-green-600 p-2">
+              <div className="flex items-center space-x-1 text-brand-primary p-2">
                 <Gift size={14} />
                 <span>
                   {currentYearHolidays.length} días festivos en {currentYear}
@@ -524,13 +524,13 @@ const CalendarPage: React.FC = () => {
               key={day.toString()}
               className={`calendar-day min-h-[50px] sm:min-h-[90px] border border-gray-200 bg-white rounded-md transition-colors duration-150 cursor-pointer ${
                 !isSameMonth(day, monthStart) ? "bg-gray-50 text-gray-400" : ""
-              } ${isToday(day) ? "border-green-500 border-2" : ""}`}
+              } ${isToday(day) ? "border-brand-secondary border-2" : ""}`}
               onClick={() => handleDayClick(day)}
             >
               {/* Mobile View (< sm breakpoint) */}
               <div className="sm:hidden h-full flex flex-col items-center justify-center p-1 relative">
                 <span
-                  className={`text-xs mb-1 ${isToday(day) ? "font-bold text-green-600" : ""}`}
+                  className={`text-xs mb-1 ${isToday(day) ? "font-bold text-brand-primary" : ""}`}
                 >
                   {format(day, dateFormat)}
                 </span>
@@ -558,7 +558,7 @@ const CalendarPage: React.FC = () => {
               <div className="hidden sm:flex sm:flex-col sm:justify-between sm:h-full p-1">
                 <div className="calendar-day-header flex justify-between">
                   <span
-                    className={isToday(day) ? "font-bold text-green-600" : ""}
+                    className={isToday(day) ? "font-bold text-brand-primary" : ""}
                   >
                     {format(day, dateFormat)}
                   </span>

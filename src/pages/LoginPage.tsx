@@ -62,8 +62,8 @@ const LoginPage: React.FC = () => {
       <div className="mx-auto w-full max-w-md">
         <div className="flex justify-center mb-6">
           <div className="flex items-center space-x-2">
-            <FileText size={32} className="text-green-700" />
-            <span className="text-2xl font-bold text-green-700">
+            <FileText size={32} className="text-brand-secondary" />
+            <span className="text-2xl font-bold text-brand-primary">
               Birrieria La Purisima
             </span>
           </div>
@@ -137,13 +137,13 @@ const LoginPage: React.FC = () => {
 
           <div className="mt-6 flex flex-col items-center space-y-4">
             <button
-              className="text-sm text-green-700 hover:text-green-800"
+              className="text-sm text-brand-primary hover:text-brand-secondary"
               disabled={loading}
             >
               Crear cuenta
             </button>
             <button
-              className="text-sm text-green-700 hover:text-green-800"
+              className="text-sm text-brand-primary hover:text-brand-secondary"
               disabled={loading}
             >
               ¿Olvidaste tu contraseña?

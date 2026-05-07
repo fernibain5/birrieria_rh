@@ -128,7 +128,7 @@ const Step3TopicsDetails: React.FC<Step3Props> = ({ topics, setTopics, onSubmit 
       </div>
       <button
         onClick={onSubmit}
-        className={`mt-6 px-4 py-2 bg-green-600 text-white rounded w-full ${!isValid ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`mt-6 px-4 py-2 bg-brand-primary text-white rounded w-full hover:bg-brand-primaryHover transition-colors ${!isValid ? 'opacity-50 cursor-not-allowed' : ''}`}
         disabled={!isValid}
       >
         Enviar

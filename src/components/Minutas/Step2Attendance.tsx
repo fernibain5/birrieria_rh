@@ -5,14 +5,11 @@ import { UserProfile } from '../../types/auth';
 interface Step2Props {
   attendees: UserProfile[];
   setAttendees: (attendees: UserProfile[]) => void;
-  onNext: () => void;
   onBack: () => void;
-  onDownload: () => void;
-  onDownloadAttendance: () => void;
-  onSaveMinuta: () => void;
+  onSaveMinuta: () => void | Promise<void>;
 }
 
-const Step2Attendance: React.FC<Step2Props> = ({ attendees, setAttendees, onNext, onBack, onDownload, onDownloadAttendance, onSaveMinuta }) => {
+const Step2Attendance: React.FC<Step2Props> = ({ attendees, setAttendees, onBack, onSaveMinuta }) => {
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -54,7 +51,7 @@ const Step2Attendance: React.FC<Step2Props> = ({ attendees, setAttendees, onNext
         placeholder="Buscar por nombre..."
         value={search}
         onChange={e => setSearch(e.target.value)}
-        className="mb-4 px-3 py-2 border border-gray-300 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="mb-4 px-3 py-2 border border-gray-300 rounded w-full focus:outline-none focus:ring-2 focus:ring-brand-secondary"
       />
       {loading ? (
         <div className="text-center text-gray-500">Cargando usuarios...</div>
@@ -69,7 +66,7 @@ const Step2Attendance: React.FC<Step2Props> = ({ attendees, setAttendees, onNext
               <li
                 key={user.uid}
                 onClick={() => toggleAttendance(user)}
-                className={`flex items-center justify-between py-2 px-3 rounded cursor-pointer transition-colors ${selected ? 'bg-green-100 text-green-800 font-semibold' : 'hover:bg-gray-100'}`}
+                className={`flex items-center justify-between py-2 px-3 rounded cursor-pointer transition-colors ${selected ? 'bg-brand-secondarySoft text-brand-primary font-semibold' : 'hover:bg-gray-100'}`}
                 style={{ marginBottom: '4px' }}
               >
                 <span>{user.displayName || user.email}</span>
@@ -79,35 +76,19 @@ const Step2Attendance: React.FC<Step2Props> = ({ attendees, setAttendees, onNext
           })}
         </ul>
       )}
-      <div className="flex flex-col gap-2 mt-4">
-        <div className="flex gap-2">
-          <button 
-            onClick={onBack} 
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex-1"
-          >
-            Anterior
-          </button>
-          <button 
-            onClick={onDownload} 
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex-1"
-          >
-            Descargar Minuta
-          </button>
-        </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={onDownloadAttendance} 
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex-1"
-          >
-            Descargar Asistencia
-          </button>
-          <button 
-            onClick={onSaveMinuta} 
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors flex-1"
-          >
-            Guardar Minuta
-          </button>
-        </div>
+      <div className="flex gap-2 mt-4">
+        <button 
+          onClick={onBack} 
+          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex-1"
+        >
+          Anterior
+        </button>
+        <button 
+          onClick={onSaveMinuta} 
+          className="px-4 py-2 bg-brand-primary text-white rounded hover:bg-brand-primaryHover transition-colors flex-1"
+        >
+          Guardar Minuta
+        </button>
       </div>
     </div>
   );

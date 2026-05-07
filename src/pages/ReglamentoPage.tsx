@@ -62,7 +62,7 @@ const ReglamentoPage: React.FC = () => {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center">
-            <FileText className="text-green-600 mr-4" size={32} />
+            <FileText className="text-brand-secondary mr-4" size={32} />
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Reglamento</h1>
               <div className="flex items-center mt-2 text-gray-600">
@@ -71,7 +71,7 @@ const ReglamentoPage: React.FC = () => {
                   Sucursal {displayBranch} - Birrieria La Purisima
                 </span>
                 {isAdmin && (
-                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-xs font-medium">
+                  <span className="ml-2 px-2 py-1 bg-brand-secondarySoft text-brand-primary rounded-full text-xs font-medium">
                     Admin
                   </span>
                 )}
@@ -92,11 +92,11 @@ const ReglamentoPage: React.FC = () => {
         )}
 
         {/* Introduction */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
-          <h2 className="text-lg font-semibold text-green-800 mb-2">
+        <div className="bg-brand-primarySoft border border-brand-secondary/30 rounded-lg p-6 mb-8">
+          <h2 className="text-lg font-semibold text-brand-primary mb-2">
             Documentos de Reglamento y Obligaciones
           </h2>
-          <p className="text-green-700">
+          <p className="text-brand-primaryMuted">
             {isAdmin
               ? `Bienvenido a la sección de reglamentos. Como administrador, puedes ver los documentos de cualquier sucursal usando el selector arriba. Actualmente visualizando: Sucursal ${selectedBranch}.`
               : `Bienvenido a la sección de reglamentos de la Sucursal ${displayBranch}. Aquí encontrarás todos los documentos que establecen las normas, procedimientos y obligaciones para cada área de trabajo.`}{" "}
@@ -135,7 +135,7 @@ const ReglamentoPage: React.FC = () => {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-brand-secondary">
                 {filteredDocuments.length}
               </div>
               <div className="text-sm text-gray-600">
@@ -143,13 +143,13 @@ const ReglamentoPage: React.FC = () => {
               </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-brand-secondary">
                 {displayBranch}
               </div>
               <div className="text-sm text-gray-600">Sucursal</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">DOCX</div>
+              <div className="text-2xl font-bold text-brand-secondary">DOCX</div>
               <div className="text-sm text-gray-600">Formato de Archivos</div>
             </div>
           </div>

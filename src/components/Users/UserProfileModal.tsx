@@ -130,7 +130,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center">
-            <User className="text-green-600 mr-3" size={24} />
+            <User className="text-brand-secondary mr-3" size={24} />
             <h2 className="text-xl font-semibold text-gray-900">
               Perfil de Usuario
             </h2>
@@ -167,7 +167,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               name="displayName"
               value={editedUser.displayName || ""}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               placeholder="Nombre del empleado"
               disabled={loading}
             />
@@ -205,7 +205,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               name="role"
               value={editedUser.role}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               disabled={loading}
             >
               {ALL_ROLES.map((role) => (
@@ -230,7 +230,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               name="branch"
               value={editedUser.branch || "San Pedro"}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               disabled={loading}
             >
               {ALL_BRANCHES.map((branch) => (
@@ -256,7 +256,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               name="phoneNumber"
               value={editedUser.phoneNumber || ""}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               placeholder="Número de teléfono"
               disabled={loading}
             />
@@ -273,7 +273,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 <div className="flex text-sm text-gray-600">
                   <label
                     htmlFor="file-upload"
-                    className="relative cursor-pointer bg-white rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-green-500"
+                    className="relative cursor-pointer bg-white rounded-md font-medium text-brand-secondary hover:text-brand-secondary focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-brand-secondary"
                   >
                     <span>Subir archivos</span>
                     <input
@@ -317,7 +317,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                       href={fileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-green-600 hover:text-green-500"
+                      className="text-brand-secondary hover:text-brand-secondary"
                     >
                       {fileUrl.split('/').pop()}
                     </a>
@@ -332,7 +332,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-secondary"
               disabled={loading}
             >
               Cancelar
@@ -340,7 +340,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             <button
               type="submit"
               disabled={!isEditing || loading || uploadingFiles}
-              className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-white bg-brand-primary border border-transparent rounded-md hover:bg-brand-primaryHover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading || uploadingFiles ? "Guardando..." : "Guardar Cambios"}
             </button>

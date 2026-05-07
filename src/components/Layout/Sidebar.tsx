@@ -91,14 +91,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex md:flex-shrink-0 ${
         isOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
-        <div className="flex flex-col w-64 bg-green-900 border-r border-gray-200">
-          <div className="flex items-center justify-between h-16 bg-green-800 px-4">
+        <div className="flex flex-col w-64 bg-brand-primary border-r border-gray-200">
+          <div className="flex items-center justify-between h-16 bg-brand-primaryHover px-4">
             <div className="text-lg font-bold text-white">
               Birrieria La Purisima
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-white rounded-md md:hidden hover:bg-green-700"
+              className="p-2 text-white rounded-md md:hidden hover:bg-brand-secondary"
             >
               <X size={20} />
             </button>
@@ -115,8 +115,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     className={({ isActive }) =>
                       `flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors duration-150 ease-in-out ${
                         isActive
-                          ? "bg-green-700 text-white"
-                          : "text-green-100 hover:bg-green-800 hover:text-white"
+                          ? "bg-brand-secondary text-white"
+                          : "text-orange-50 hover:bg-brand-primaryHover hover:text-white"
                       }`
                     }
                   >
@@ -128,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             <div className="p-4">
               <button
                 onClick={handleLogout}
-                className="flex items-center w-full px-4 py-3 text-sm font-medium text-green-100 rounded-md hover:bg-green-800 hover:text-white transition-colors duration-150 ease-in-out"
+                className="flex items-center w-full px-4 py-3 text-sm font-medium text-orange-50 rounded-md hover:bg-brand-primaryHover hover:text-white transition-colors duration-150 ease-in-out"
               >
                 <LogOut size={20} className="mr-3" />
                 Cerrar Sesión

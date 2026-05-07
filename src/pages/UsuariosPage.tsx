@@ -110,7 +110,7 @@ const UsuariosPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <Users className="text-green-600 mr-4" size={32} />
+              <Users className="text-brand-secondary mr-4" size={32} />
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">
                   Gestión de Usuarios
@@ -122,7 +122,7 @@ const UsuariosPage: React.FC = () => {
             </div>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
+              className="flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primaryHover focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
             >
               <UserPlus size={20} className="mr-2" />
               Agregar Usuario
@@ -141,7 +141,7 @@ const UsuariosPage: React.FC = () => {
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-secondary mx-auto"></div>
             <p className="mt-4 text-gray-600">Cargando usuarios...</p>
           </div>
         ) : (
@@ -150,8 +150,8 @@ const UsuariosPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Users className="text-green-600" size={24} />
+                  <div className="p-2 bg-brand-secondarySoft rounded-lg">
+                    <Users className="text-brand-secondary" size={24} />
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">
@@ -257,8 +257,8 @@ const UsuariosPage: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 h-10 w-10">
-                                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                                  <span className="text-green-600 font-medium">
+                                <div className="h-10 w-10 rounded-full bg-brand-secondarySoft flex items-center justify-center">
+                                  <span className="text-brand-primary font-medium">
                                     {user.displayName
                                       ?.charAt(0)
                                       .toUpperCase() ||
@@ -327,7 +327,7 @@ const UsuariosPage: React.FC = () => {
                 </p>
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primaryHover focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
                 >
                   <UserPlus size={20} className="mr-2" />
                   Agregar Primer Usuario

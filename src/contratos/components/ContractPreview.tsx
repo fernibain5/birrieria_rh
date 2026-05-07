@@ -150,7 +150,7 @@ export const ContractPreview: React.FC<ContractPreviewProps> = ({ data, onDownlo
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-      <div className={`bg-gradient-to-r ${info.colorClasses.gradientFrom} ${info.colorClasses.gradientTo} px-6 py-4`}>
+      <div className="bg-gradient-to-r from-brand-primary to-brand-secondary px-6 py-4">
         <div className="flex items-center space-x-4">
           {info.icon}
           <div>
@@ -172,7 +172,7 @@ export const ContractPreview: React.FC<ContractPreviewProps> = ({ data, onDownlo
       <div className="p-6 border-t border-slate-100">
         <button
           onClick={onDownload}
-          className={`w-full px-6 py-3 bg-gradient-to-r ${info.colorClasses.gradientFrom} ${info.colorClasses.gradientTo} ${info.colorClasses.gradientHoverFrom} ${info.colorClasses.gradientHoverTo} text-white rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2`}
+          className="w-full px-6 py-3 bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primaryHover hover:to-brand-secondaryHover text-white rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
         >
           <Download className="w-5 h-5" />
           <span>Descargar Contrato</span>

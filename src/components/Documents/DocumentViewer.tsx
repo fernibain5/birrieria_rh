@@ -29,7 +29,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         return (
           <h3
             key={index}
-            className="text-lg font-semibold text-green-700 mt-6 mb-3 border-b border-green-200 pb-2"
+            className="text-lg font-semibold text-brand-primary mt-6 mb-3 border-b border-brand-secondary/30 pb-2"
           >
             {paragraph.replace(":", "")}
           </h3>
@@ -50,13 +50,13 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center">
-            <FileText className="text-green-600 mr-3" size={28} />
+            <FileText className="text-brand-secondary mr-3" size={28} />
             <div>
               <h2 className="text-xl font-bold text-gray-800">
                 {document.title}
               </h2>
               <div className="flex items-center text-sm text-gray-500 mt-1">
-                <span className="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs font-medium mr-2">
+                <span className="bg-brand-secondarySoft text-brand-primary px-2 py-1 rounded-full text-xs font-medium mr-2">
                   {document.fileType.toUpperCase()}
                 </span>
                 <span>Sucursal {document.sucursal}</span>
@@ -77,7 +77,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 element.click();
                 window.document.body.removeChild(element);
               }}
-              className="flex items-center px-3 py-2 text-green-600 hover:bg-green-50 rounded-md transition-colors duration-200"
+              className="flex items-center px-3 py-2 text-brand-primary hover:bg-brand-secondarySoft rounded-md transition-colors duration-200"
               title="Descargar documento"
             >
               <Download size={18} />

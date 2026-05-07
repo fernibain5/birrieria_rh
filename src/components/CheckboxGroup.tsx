@@ -35,13 +35,13 @@ export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
               onClick={() => toggleOption(option)}
               className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md ${
                 isSelected 
-                  ? 'border-blue-500 bg-blue-50' 
+                  ? 'border-brand-secondary bg-brand-secondarySoft' 
                   : 'border-slate-300 hover:border-slate-400'
               }`}
             >
               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
                 isSelected 
-                  ? 'border-blue-500 bg-blue-500' 
+                  ? 'border-brand-secondary bg-brand-secondary' 
                   : 'border-slate-300'
               }`}>
                 {isSelected && <Check className="w-3 h-3 text-white" />}

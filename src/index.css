@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    --tw-ring-color: #F28705;
+  }
+
+  .btn-primary {
+    @apply text-white;
+    background-color: #4C2D0D;
+  }
+
+  .btn-primary:hover {
+    background-color: #3A2109;
+  }
+
+  .input {
+    @apply w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 disabled:bg-gray-100 disabled:text-gray-500;
+  }
+
+  .input:focus {
+    border-color: #F28705;
+    --tw-ring-color: rgb(242 135 5 / 0.3);
+  }
+
+  .card {
+    @apply rounded-lg bg-white p-6 shadow-sm;
+  }
+}

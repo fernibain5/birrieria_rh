@@ -23,7 +23,7 @@ export const FormField: React.FC<FormFieldProps> = ({
     onChange(name, e.target.value);
   };
 
-  const baseClasses = "w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 outline-none";
+  const baseClasses = "w-full px-4 py-3 rounded-lg border border-slate-300 focus:border-brand-secondary focus:ring-2 focus:ring-brand-secondary/20 transition-all duration-200 outline-none";
 
   return (
     <div className="space-y-2">

@@ -120,7 +120,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center">
-            <User className="text-green-600 mr-3" size={24} />
+            <User className="text-brand-secondary mr-3" size={24} />
             <h2 className="text-xl font-semibold text-gray-900">
               Agregar Nuevo Usuario
             </h2>
@@ -157,7 +157,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
               name="displayName"
               value={formData.displayName}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               placeholder="Nombre del empleado"
               disabled={loading}
               required
@@ -179,7 +179,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
               name="email"
               value={formData.email}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               placeholder="correo@ejemplo.com"
               disabled={loading}
               required
@@ -201,7 +201,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
               name="password"
               value={formData.password}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               placeholder="Al menos 6 caracteres"
               disabled={loading}
               required
@@ -224,7 +224,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
               name="phoneNumber"
               value={formData.phoneNumber}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               placeholder="1234567890"
               disabled={loading}
               required
@@ -245,7 +245,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
               name="role"
               value={formData.role}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               disabled={loading}
               required
             >
@@ -271,7 +271,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
               name="branch"
               value={formData.branch}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               disabled={loading}
               required
             >
@@ -295,7 +295,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primaryHover focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors disabled:opacity-50"
               disabled={loading}
             >
               {loading ? "Creando..." : "Crear Usuario"}
