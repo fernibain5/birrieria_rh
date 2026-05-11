@@ -6,6 +6,7 @@ import DashboardLayout from './components/Layout/DashboardLayout';
 import LoginPage from './pages/LoginPage';
 import CalendarPage from './pages/CalendarPage';
 import MinutasPage from './pages/MinutasPage';
+import HistorialMinutasPage from './pages/HistorialMinutasPage';
 import RecursosPage from './pages/RecursosPage';
 import ReglamentoPage from './pages/ReglamentoPage';
 import UsuariosPage from './pages/UsuariosPage';
@@ -30,14 +31,15 @@ function App() {
           >
             {/* Redirect /dashboard to /dashboard/calendario */}
             <Route index element={<Navigate to="/dashboard/calendario" replace />} />
-            
+
             {/* Dashboard pages */}
             <Route path="calendario" element={<CalendarPage />} />
             <Route path="minutas" element={<MinutasPage />} />
+            <Route path="historial-minutas" element={<HistorialMinutasPage />} />
             <Route path="recursos" element={<RecursosPage />} />
             <Route path="reglamento" element={<ReglamentoPage />} />
             <Route path="contratos" element={<ContratosPage />} />
-            
+
             {/* Admin only routes */}
             <Route
               path="usuarios"

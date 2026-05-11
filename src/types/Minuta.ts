@@ -1,5 +1,7 @@
 import { UserRole, UserBranch } from './auth';
 
+export type MinutaStatus = 'pending' | 'completed';
+
 export interface MinutaGeneralInfo {
   date: string;
   startTime: string;
@@ -15,6 +17,7 @@ export interface MinutaArea {
   planteamiento: string;
   seguimiento: string;
   fechaCompromiso: string;
+  status?: MinutaStatus;
   encargadoUid?: string;
   encargadoUids?: string[];
   encargadoName?: string;
@@ -38,6 +41,8 @@ export interface Minuta {
   createdAt: Date;
   createdBy: string;
   eventId?: string; // Reference to the created calendar event
+  status?: MinutaStatus;
+  responsibleUids?: string[];
   generalInfo?: MinutaGeneralInfo;
   areas?: MinutaArea[];
   attendees?: MinutaAttendee[];

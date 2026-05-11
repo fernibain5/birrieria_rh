@@ -36,13 +36,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       show: true,
     },
     {
+      name: "Historial Minutas",
+      path: "/dashboard/historial-minutas",
+      icon: <ClipboardList size={20} />,
+      show: true,
+    },
+    {
       name: "Recursos",
       path: "/dashboard/recursos",
       icon: <BookOpen size={20} />,
       show: true,
     },
     {
-      name: "Reglamento",
+      name: "Reglamento y Obligaciones",
       path: "/dashboard/reglamento",
       icon: <ScrollText size={20} />,
       show: true,
@@ -88,9 +94,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           onClick={onClose}
         />
       )}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex md:flex-shrink-0 ${
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      }`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex md:flex-shrink-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}>
         <div className="flex flex-col w-64 bg-brand-primary border-r border-gray-200">
           <div className="flex items-center justify-between h-16 bg-brand-primaryHover px-4">
             <div className="text-lg font-bold text-white">
@@ -113,10 +118,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     to={item.path}
                     onClick={handleNavClick}
                     className={({ isActive }) =>
-                      `flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors duration-150 ease-in-out ${
-                        isActive
-                          ? "bg-brand-secondary text-white"
-                          : "text-orange-50 hover:bg-brand-primaryHover hover:text-white"
+                      `flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors duration-150 ease-in-out ${isActive
+                        ? "bg-brand-secondary text-white"
+                        : "text-orange-50 hover:bg-brand-primaryHover hover:text-white"
                       }`
                     }
                   >

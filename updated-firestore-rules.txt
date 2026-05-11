@@ -18,11 +18,26 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
     
-    // Minutas: authenticated users can create and read, admins can do everything
+    // Minutas: authenticated users can create and read, admins can do everything.
+    // Assigned responsables can update only completion-related fields.
     match /minutas/{minutaId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && 
         request.auth.uid == request.resource.data.createdBy;
+      allow update: if request.auth != null &&
+        request.auth.uid in resource.data.responsibleUids &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["areas", "status", "responsibleUids"]);
+      allow update, delete: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    // Resources: authenticated users can read, only admins can manage shared files
+    match /resources/{resourceId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.createdBy &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
       allow update, delete: if request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
