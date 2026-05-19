@@ -3,8 +3,10 @@ import { CheckCircle, Download, FileText, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { completeMinutaArea, getAllMinutas } from '../services/minutaService';
 import { Minuta, MinutaArea, MinutaStatus } from '../types/Minuta';
+import { UserBranch } from '../types/auth';
 import { generateAttendanceListDocx } from '../utils/attendanceListGenerator';
 import { generateMinutaDocx } from '../utils/minutaDocxGenerator';
+import BranchDropdown from '../components/ui/BranchDropdown';
 
 const tabLabels: Record<MinutaStatus, string> = {
   pending: 'Pendientes',
@@ -23,6 +25,9 @@ const HistorialMinutasPage: React.FC = () => {
   const [activeStatus, setActiveStatus] = useState<MinutaStatus>('pending');
   const [isLoading, setIsLoading] = useState(true);
   const [completingKey, setCompletingKey] = useState<string | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<UserBranch>(
+    (userProfile?.branch as UserBranch) ?? 'San Pedro'
+  );
   const [message, setMessage] = useState<{
     type: 'success' | 'error';
     text: string;
@@ -50,17 +55,22 @@ const HistorialMinutasPage: React.FC = () => {
     loadMinutas();
   }, []);
 
+  const branchMinutas = useMemo(
+    () => minutas.filter(m => !m.branch || m.branch === selectedBranch),
+    [minutas, selectedBranch]
+  );
+
   const filteredMinutas = useMemo(
-    () => minutas.filter(minuta => getStatus(minuta.status) === activeStatus),
-    [activeStatus, minutas]
+    () => branchMinutas.filter(minuta => getStatus(minuta.status) === activeStatus),
+    [activeStatus, branchMinutas]
   );
 
   const counts = useMemo(
     () => ({
-      pending: minutas.filter(minuta => getStatus(minuta.status) === 'pending').length,
-      completed: minutas.filter(minuta => getStatus(minuta.status) === 'completed').length,
+      pending: branchMinutas.filter(minuta => getStatus(minuta.status) === 'pending').length,
+      completed: branchMinutas.filter(minuta => getStatus(minuta.status) === 'completed').length,
     }),
-    [minutas]
+    [branchMinutas]
   );
 
   const canCompleteArea = (area: MinutaArea) => {
@@ -122,7 +132,13 @@ const HistorialMinutasPage: React.FC = () => {
   return (
     <div className="card">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">Historial Minutas</h1>
+        <div className="flex items-center gap-3">
+          <BranchDropdown
+            selectedBranch={selectedBranch}
+            onBranchChange={setSelectedBranch}
+          />
+          <h1 className="text-2xl font-bold text-gray-800">Historial Minutas</h1>
+        </div>
         <button
           type="button"
           onClick={loadMinutas}

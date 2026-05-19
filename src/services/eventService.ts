@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { Event } from '../types/Event';
-import { UserProfile } from '../types/auth';
+import { UserBranch, UserProfile } from '../types/auth';
 
 const EVENTS_COLLECTION = 'events';
 
@@ -116,10 +116,9 @@ export const addEvent = async (event: Omit<Event, 'id'>): Promise<string> => {
       createdBy: event.createdBy || '',
     };
 
-    // Add targeting fields for minuta events
-    if (event.targetRole) eventData.targetRole = event.targetRole;
+    if (event.targetRole)   eventData.targetRole   = event.targetRole;
     if (event.targetBranch) eventData.targetBranch = event.targetBranch;
-    if (event.minutaId) eventData.minutaId = event.minutaId;
+    if (event.minutaId)     eventData.minutaId     = event.minutaId;
     
     const docRef = await addDoc(collection(db, EVENTS_COLLECTION), eventData);
     return docRef.id;
@@ -161,17 +160,17 @@ export const deleteEvent = async (id: string): Promise<void> => {
   }
 };
 
-// Check if holidays exist for a specific year
-export const checkHolidaysExistForYear = async (year: number): Promise<boolean> => {
+// Check if holidays exist for a specific year and branch
+export const checkHolidaysExistForYear = async (year: number, branch: UserBranch): Promise<boolean> => {
   try {
     const eventsRef = collection(db, EVENTS_COLLECTION);
     const q = query(
       eventsRef,
       where('year', '==', year),
-      where('type', '==', 'holiday')
+      where('type', '==', 'holiday'),
+      where('targetBranch', '==', branch)
     );
     const querySnapshot = await getDocs(q);
-    
     return !querySnapshot.empty;
   } catch (error) {
     console.error('Error checking holidays for year:', error);
@@ -192,70 +191,17 @@ export const addMultipleEvents = async (events: Omit<Event, 'id'>[]): Promise<vo
 
 // Filter events based on user permissions
 export const filterEventsForUser = (events: Event[], userProfile: UserProfile): Event[] => {
-  console.log('🔍 DEBUG: Filtering events for user:', {
-    role: userProfile.role,
-    branch: userProfile.branch,
-    totalEvents: events.length
-  });
+  // Admins see all events; branch filtering is done in the UI
+  if (userProfile.role === 'admin') return events;
 
-  const filteredEvents = events.filter(event => {
-    // Admins can see all events
-    if (userProfile.role === 'admin') {
-      console.log('🔍 DEBUG: Admin user - showing all events');
-      return true;
-    }
-
-    // For minuta events, check if user matches the target role and branch
+  return events.filter(event => {
+    // Minuta events are role- and branch-specific
     if (event.type === 'minuta') {
-      const shouldShow = (
-        event.targetRole === userProfile.role && 
-        event.targetBranch === userProfile.branch
-      );
-      console.log('🔍 DEBUG: Minuta event:', {
-        eventTitle: event.title,
-        targetRole: event.targetRole,
-        targetBranch: event.targetBranch,
-        userRole: userProfile.role,
-        userBranch: userProfile.branch,
-        shouldShow
-      });
-      return shouldShow;
+      return event.targetRole === userProfile.role && event.targetBranch === userProfile.branch;
     }
-
-    // ADDITIONAL CHECK: For events that might be minuta events but saved with wrong type
-    // Check if the title matches the minuta pattern: "Reunión de Seguimiento - {role} ({branch})"
-    if (event.title?.startsWith('Reunión de Seguimiento -')) {
-      console.log('🔍 DEBUG: Potential minuta event with wrong type detected:', event.title);
-      
-      // Extract role and branch from the title
-      const titleMatch = event.title.match(/Reunión de Seguimiento - (\w+) \(([^)]+)\)/);
-      if (titleMatch) {
-        const [, titleRole, titleBranch] = titleMatch;
-        const shouldShow = (
-          titleRole === userProfile.role && 
-          titleBranch === userProfile.branch
-        );
-        console.log('🔍 DEBUG: Extracted from title - role:', titleRole, 'branch:', titleBranch, 'shouldShow:', shouldShow);
-        return shouldShow;
-      }
-    }
-
-    // All other events (holiday, custom) are visible to all authenticated users
-    console.log('🔍 DEBUG: Non-minuta event:', {
-      eventTitle: event.title,
-      eventType: event.type,
-      showing: true
-    });
-    return true;
+    // All other events: show if they match the user's branch or have no branch set
+    return !event.targetBranch || event.targetBranch === userProfile.branch;
   });
-
-  console.log('🔍 DEBUG: Filtered events result:', {
-    original: events.length,
-    filtered: filteredEvents.length,
-    minutaEvents: filteredEvents.filter(e => e.type === 'minuta').length
-  });
-
-  return filteredEvents;
 };
 
 // Get filtered events for a specific user

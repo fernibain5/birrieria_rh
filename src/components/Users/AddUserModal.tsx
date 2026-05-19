@@ -22,6 +22,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
     branch: "San Pedro",
     phoneNumber: "",
   });
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -66,7 +67,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
 
     try {
       setLoading(true);
-      await createUser(formData);
+      await createUser({ ...formData, role: isAdmin ? "admin" : formData.role });
 
       // Reset form
       setFormData({
@@ -77,6 +78,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
         branch: "San Pedro",
         phoneNumber: "",
       });
+      setIsAdmin(false);
 
       onUserCreated();
       onClose();
@@ -135,7 +137,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4" autoComplete="off">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
               {error}
@@ -181,6 +183,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               placeholder="correo@ejemplo.com"
+              autoComplete="off"
+              readOnly
+              onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
               disabled={loading}
               required
             />
@@ -203,6 +208,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               placeholder="Al menos 6 caracteres"
+              autoComplete="new-password"
+              readOnly
+              onFocus={(e) => e.currentTarget.removeAttribute("readOnly")}
               disabled={loading}
               required
               minLength={6}
@@ -231,31 +239,48 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
             />
           </div>
 
-          {/* Role */}
-          <div>
-            <label
-              htmlFor="role"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              <UserCheck size={16} className="inline mr-2" />
-              Puesto
-            </label>
-            <select
-              id="role"
-              name="role"
-              value={formData.role}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
+          {/* Admin checkbox */}
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="isAdmin"
+              checked={isAdmin}
+              onChange={(e) => setIsAdmin(e.target.checked)}
               disabled={loading}
-              required
-            >
-              {roleOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              className="h-4 w-4 text-brand-secondary border-gray-300 rounded focus:ring-brand-secondary"
+            />
+            <label htmlFor="isAdmin" className="text-sm font-medium text-gray-700">
+              Administrador
+            </label>
           </div>
+
+          {/* Role */}
+          {!isAdmin && (
+            <div>
+              <label
+                htmlFor="role"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                <UserCheck size={16} className="inline mr-2" />
+                Puesto
+              </label>
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
+                disabled={loading}
+                required
+              >
+                {roleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Branch */}
           <div>

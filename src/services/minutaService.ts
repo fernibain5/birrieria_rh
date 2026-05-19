@@ -14,7 +14,7 @@ import {
 import { db } from '../firebase/config';
 import { Minuta, MinutaArea, MinutaStatus } from '../types/Minuta';
 import { UserProfile, UserRole, UserBranch } from '../types/auth';
-import { addEvent } from './eventService';
+import { addEvent, deleteEvent } from './eventService';
 import { getAllUsers } from './userService';
 import { sendMinutaNotification, logMinutaNotification } from './whatsappService';
 
@@ -111,6 +111,7 @@ const mapMinutaDoc = (docId: string, data: DocumentData): Minuta => ({
       createdAt: convertTimestampToDate(data.createdAt),
       createdBy: data.createdBy,
       eventId: data.eventId,
+      areaEventIds: data.areaEventIds || [],
       status: getMinutaStatus(areas, data.status),
       responsibleUids: data.responsibleUids || getResponsibleUids(areas),
       generalInfo: data.generalInfo,
@@ -146,6 +147,35 @@ export const createMinuta = async (
 
     const minutaRef = await addDoc(collection(db, MINUTAS_COLLECTION), minuta);
 
+    // Create one calendar event per area
+    if (minutaData.branch && areas.length > 0) {
+      const areaEventIds: string[] = [];
+
+      for (const area of areas) {
+        const eventDate = area.fechaCompromiso
+          ? new Date(area.fechaCompromiso)
+          : (minutaData.nextMeetingDate ?? new Date());
+
+        const eventId = await addEvent({
+          title: area.area,
+          description: `Seguimiento del problema\nResponsable: ${area.encargadoName || 'Sin responsable'}`,
+          date: eventDate,
+          color: 'bg-purple-100 text-purple-800',
+          type: 'minuta',
+          createdBy,
+          createdAt: new Date(),
+          targetRole: minutaData.role,
+          targetBranch: minutaData.branch,
+          minutaId: minutaRef.id,
+        });
+
+        areaEventIds.push(eventId);
+      }
+
+      await updateDoc(doc(db, MINUTAS_COLLECTION, minutaRef.id), { areaEventIds });
+    }
+
+    // Send WhatsApp notifications if all required fields are present
     if (
       minutaData.nextMeetingDate &&
       minutaData.role &&
@@ -153,36 +183,8 @@ export const createMinuta = async (
       minutaData.supervisor &&
       minutaData.expectations
     ) {
-      // Create an event for the next meeting date
-      const eventTitle = `Reunión de Seguimiento - ${minutaData.role} (${minutaData.branch})`;
-      const eventDescription = `Reunión de seguimiento para el rol ${minutaData.role} en sucursal ${minutaData.branch}.\n\nSupervisor: ${minutaData.supervisor}\n\nExpectativas: ${minutaData.expectations}`;
-
-      const eventId = await addEvent({
-        title: eventTitle,
-        description: eventDescription,
-        date: minutaData.nextMeetingDate,
-        color: 'bg-purple-100 text-purple-800',
-        type: 'minuta',
-        createdBy,
-        createdAt: new Date(),
-        targetRole: minutaData.role,
-        targetBranch: minutaData.branch,
-        minutaId: minutaRef.id,
-      });
-
-      // Update the minuta with the event ID
-      await updateDoc(doc(db, MINUTAS_COLLECTION, minutaRef.id), {
-        eventId,
-      });
-
-      // Get users to notify (admins + users with specific role and branch)
       const targetUsers = await getUsersToNotify(minutaData.role, minutaData.branch);
-      
-      console.log(`Minuta created for ${minutaData.role} at ${minutaData.branch}`);
-      console.log(`Event created with ID: ${eventId}`);
-      console.log(`Target users for notification:`, targetUsers.length);
 
-      // Send WhatsApp notifications
       try {
         await sendMinutaNotification(
           minutaData.supervisor,
@@ -194,9 +196,6 @@ export const createMinuta = async (
         );
       } catch (whatsappError) {
         console.error('Error sending WhatsApp notifications:', whatsappError);
-        // Don't fail the minuta creation if WhatsApp fails
-        
-        // Log the notification details for debugging
         logMinutaNotification(
           minutaData.supervisor,
           minutaData.role,
@@ -260,6 +259,12 @@ export const completeMinutaArea = async (
       status,
       responsibleUids: getResponsibleUids(updatedAreas),
     });
+
+    // When the minuta is fully completed, remove all its area calendar events
+    if (status === COMPLETED_STATUS) {
+      const eventIds = minuta.areaEventIds || [];
+      await Promise.all(eventIds.map(id => deleteEvent(id).catch(() => {})));
+    }
 
     return {
       ...minuta,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   format,
   startOfMonth,
@@ -11,19 +11,23 @@ import {
   isToday,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Calendar, Gift } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar } from "lucide-react";
 import EventModal from "../components/Calendar/EventModal";
+import BranchDropdown from "../components/ui/BranchDropdown";
 import { Event } from "../types/Event";
+import { UserBranch } from "../types/auth";
 import { useAuth } from "../contexts/AuthContext";
 import {
   getEventsForUser,
   addEvent,
   updateEvent,
   deleteEvent,
-  checkHolidaysExistForYear,
-  addMultipleEvents,
+  // checkHolidaysExistForYear,
+  // addMultipleEvents,
 } from "../services/eventService";
-import { generateMexicanHolidays } from "../utils/holidayGenerator";
+// import { generateMexicanHolidays } from "../utils/holidayGenerator";
+
+// const BRANCHES: UserBranch[] = ["San Pedro", "Las Quintas"];
 
 const CalendarPage: React.FC = () => {
   const { isAdmin, userProfile } = useAuth();
@@ -32,19 +36,21 @@ const CalendarPage: React.FC = () => {
   const [showEventModal, setShowEventModal] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAddingHolidays, setIsAddingHolidays] = useState(false);
+  // const [isAddingHolidays, setIsAddingHolidays] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [showDayEventsModal, setShowDayEventsModal] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState<UserBranch>(
+    (userProfile?.branch as UserBranch) ?? "San Pedro"
+  );
   const [visibleEventTypes, setVisibleEventTypes] = useState({
     holiday: true,
     custom: true,
     minuta: true,
   });
 
-  // Use refs to track which years we've already processed to prevent duplicates
-  const processedYears = useRef<Set<number>>(new Set());
-  const isProcessingHolidays = useRef<boolean>(false);
+  // const processedYears = useRef<Set<number>>(new Set());
+  // const isProcessingHolidays = useRef<boolean>(false);
 
   // Load events from Firestore
   const loadEvents = async () => {
@@ -65,131 +71,21 @@ const CalendarPage: React.FC = () => {
     }
   };
 
-  // Check and add holidays for current year if they don't exist
-  const ensureHolidaysExist = async () => {
-    const currentYear = new Date().getFullYear();
+  // --- HOLIDAY AUTO-CREATION DISABLED ---
+  // These functions were duplicating events and not tagging the branch correctly.
+  // Re-enable once the insertion logic is fixed.
 
-    // Prevent multiple simultaneous executions
-    if (
-      isProcessingHolidays.current ||
-      processedYears.current.has(currentYear) ||
-      !isAdmin
-    ) {
-      return;
-    }
-
-    try {
-      isProcessingHolidays.current = true;
-      setIsAddingHolidays(true);
-
-      // Double-check if holidays exist (more robust check)
-      const holidaysExist = await checkHolidaysExistForYear(currentYear);
-
-      if (!holidaysExist) {
-        console.log(`Adding holidays for ${currentYear}...`);
-        const holidays = generateMexicanHolidays(currentYear);
-        await addMultipleEvents(holidays);
-        console.log(`✅ Added holidays for ${currentYear}`);
-
-        // Mark this year as processed
-        processedYears.current.add(currentYear);
-
-        // Reload events to include the new holidays
-        await loadEvents();
-      } else {
-        console.log(`Holidays for ${currentYear} already exist, skipping...`);
-        processedYears.current.add(currentYear);
-      }
-    } catch (error) {
-      console.error("Error ensuring holidays exist:", error);
-      // Don't mark as processed if there was an error
-    } finally {
-      isProcessingHolidays.current = false;
-      setIsAddingHolidays(false);
-    }
-  };
-
-  // Manually add holidays for a specific year
-  const addHolidaysForYear = async (year: number) => {
-    if (!isAdmin) return;
-
-    // Prevent adding if already processing or already processed
-    if (isProcessingHolidays.current || processedYears.current.has(year)) {
-      alert(
-        `Los días festivos para ${year} ya están siendo procesados o ya existen.`
-      );
-      return;
-    }
-
-    try {
-      isProcessingHolidays.current = true;
-      setIsAddingHolidays(true);
-
-      const holidaysExist = await checkHolidaysExistForYear(year);
-
-      if (holidaysExist) {
-        alert(`Los días festivos para ${year} ya existen en el calendario.`);
-        processedYears.current.add(year);
-        return;
-      }
-
-      const holidays = generateMexicanHolidays(year);
-      await addMultipleEvents(holidays);
-
-      // Mark this year as processed
-      processedYears.current.add(year);
-
-      await loadEvents(); // Reload to show new holidays
-      alert(
-        `✅ Se agregaron ${holidays.length} días festivos para ${year} exitosamente.`
-      );
-    } catch (error) {
-      console.error("Error adding holidays:", error);
-      alert(
-        "Error al agregar los días festivos. Por favor, intenta nuevamente."
-      );
-    } finally {
-      isProcessingHolidays.current = false;
-      setIsAddingHolidays(false);
-    }
-  };
-
-  // Handle adding holidays for current viewing year
-  const handleAddHolidaysForCurrentYear = () => {
-    const year = currentMonth.getFullYear();
-
-    // Check if already processed
-    if (processedYears.current.has(year)) {
-      alert(`Los días festivos para ${year} ya han sido procesados.`);
-      return;
-    }
-
-    const confirmation = window.confirm(
-      `¿Deseas agregar los días festivos oficiales de México para el año ${year}?\n\nEsto incluirá:\n• Año Nuevo\n• Aniversario de la Constitución\n• Natalicio de Benito Juárez\n• Día del Trabajo\n• Día de la Independencia\n• Aniversario de la Revolución\n• Navidad`
-    );
-
-    if (confirmation) {
-      addHolidaysForYear(year);
-    }
-  };
+  // const ensureHolidaysExist = async () => { ... };
+  // const addHolidaysForYear = async (year: number) => { ... };
+  // const handleAddHolidaysForCurrentYear = () => { ... };
 
   // Initialize data when component mounts
   useEffect(() => {
-    const initializeData = async () => {
-      await loadEvents();
-      await ensureHolidaysExist();
-    };
-
     if (userProfile) {
-      initializeData();
+      loadEvents();
+      // ensureHolidaysExist(); // disabled — was creating duplicate events
     }
   }, [isAdmin, userProfile]);
-
-  // Reset processed years when user changes (to handle switching between admin/regular users)
-  useEffect(() => {
-    processedYears.current.clear();
-    isProcessingHolidays.current = false;
-  }, [userProfile?.uid]);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(monthStart);
@@ -200,7 +96,7 @@ const CalendarPage: React.FC = () => {
   const days = eachDayOfInterval({ start: startDate, end: endDate });
 
   const getEventsForDate = (date: Date) => {
-    return events.filter(
+    return branchFilteredEvents.filter(
       (event) =>
         event.date.getDate() === date.getDate() &&
         event.date.getMonth() === date.getMonth() &&
@@ -262,6 +158,7 @@ const CalendarPage: React.FC = () => {
           year: event.date.getFullYear(),
           createdAt: new Date(),
           createdBy: userProfile?.uid || "",
+          targetBranch: selectedBranch,
         };
         const newEventId = await addEvent(newEventData);
         const newEvent = {
@@ -292,6 +189,11 @@ const CalendarPage: React.FC = () => {
 
   const weekdays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
+  // Filter events by the currently selected branch (all event types carry targetBranch)
+  const branchFilteredEvents = events.filter(
+    (event) => !event.targetBranch || event.targetBranch === selectedBranch
+  );
+
   // Get event display class based on type
   const getEventDisplayClass = (event: Event) => {
     const baseClass = `calendar-event ${event.color} ${
@@ -306,12 +208,7 @@ const CalendarPage: React.FC = () => {
     return baseClass;
   };
 
-  // Check if holidays exist for the current viewing year
   const currentYear = currentMonth.getFullYear();
-  const currentYearHolidays = events.filter(
-    (e) => e.type === "holiday" && e.year === currentYear
-  );
-  const hasHolidaysForCurrentYear = currentYearHolidays.length > 0;
 
   // New: open day events modal
   const handleDayClick = (day: Date) => {
@@ -319,9 +216,9 @@ const CalendarPage: React.FC = () => {
     setShowDayEventsModal(true);
   };
 
-  // Get all events for a date (without filters for modal display)
+  // Get all events for a date (without type filters but with branch filter for modal display)
   const getAllEventsForDate = (date: Date) => {
-    return events.filter(
+    return branchFilteredEvents.filter(
       (event) =>
         event.date.getDate() === date.getDate() &&
         event.date.getMonth() === date.getMonth() &&
@@ -344,34 +241,32 @@ const CalendarPage: React.FC = () => {
 
   return (
     <div className="card">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-          Calendario de Eventos
-        </h1>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+        <div className="flex items-center gap-3">
+          <BranchDropdown
+            selectedBranch={selectedBranch}
+            onBranchChange={setSelectedBranch}
+          />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+            Calendario de Eventos
+          </h1>
+        </div>
         {isAdmin && (
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-            {!hasHolidaysForCurrentYear &&
-              !processedYears.current.has(currentYear) && (
-                <button
-                  className="btn bg-brand-secondary text-white hover:bg-brand-secondaryHover flex items-center justify-center text-sm sm:text-base px-3 py-2"
-                  onClick={handleAddHolidaysForCurrentYear}
-                  disabled={isAddingHolidays || isProcessingHolidays.current}
-                >
-                  <Gift size={16} className="mr-1" />
-                  <span className="hidden sm:inline">
-                    {isAddingHolidays
-                      ? "Agregando..."
-                      : `Agregar Días Festivos ${currentYear}`}
-                  </span>
-                  <span className="sm:hidden">
-                    {isAddingHolidays ? "Agregando..." : `Días Festivos ${currentYear}`}
-                  </span>
-                </button>
-              )}
+            {/* Holiday button disabled — creation logic needs fixing
+            {!hasHolidaysForCurrentYear && (
+              <button
+                className="btn bg-brand-secondary text-white hover:bg-brand-secondaryHover flex items-center justify-center text-sm sm:text-base px-3 py-2"
+                onClick={handleAddHolidaysForCurrentYear}
+              >
+                <Gift size={16} className="mr-1" />
+                Agregar Días Festivos {currentYear}
+              </button>
+            )}
+            */}
             <button
               className="btn btn-primary flex items-center justify-center text-sm sm:text-base px-3 py-2"
               onClick={handleAddEvent}
-              disabled={isAddingHolidays || isProcessingHolidays.current}
             >
               <Plus size={16} className="mr-1" />
               Nuevo Evento
@@ -389,26 +284,7 @@ const CalendarPage: React.FC = () => {
         </div>
       )}
 
-      {isAddingHolidays && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p className="text-yellow-800 text-sm">
-            🎄 Agregando días festivos automáticamente...
-          </p>
-        </div>
-      )}
-
-      {isAdmin &&
-        !hasHolidaysForCurrentYear &&
-        !isAddingHolidays &&
-        !processedYears.current.has(currentYear) && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-green-800 text-sm">
-              🎄 No se encontraron días festivos para {currentYear}. Puedes
-              agregarlos automáticamente haciendo clic en el botón "Agregar Días
-              Festivos {currentYear}".
-            </p>
-          </div>
-        )}
+      {/* Holiday status banners disabled — holiday creation logic is commented out */}
 
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-700">
@@ -486,14 +362,7 @@ const CalendarPage: React.FC = () => {
               {!visibleEventTypes.minuta && <span className="text-xs">(Oculto)</span>}
             </button>
             
-            {hasHolidaysForCurrentYear && (
-              <div className="flex items-center space-x-1 text-brand-primary p-2">
-                <Gift size={14} />
-                <span>
-                  {currentYearHolidays.length} días festivos en {currentYear}
-                </span>
-              </div>
-            )}
+            {/* Holiday count badge removed — holiday creation disabled */}
           </div>
         </div>
       </div>

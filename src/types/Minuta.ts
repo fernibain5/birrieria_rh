@@ -40,7 +40,8 @@ export interface Minuta {
   nextMeetingDate?: Date;
   createdAt: Date;
   createdBy: string;
-  eventId?: string; // Reference to the created calendar event
+  eventId?: string;        // Legacy: single event reference (kept for existing docs)
+  areaEventIds?: string[]; // One calendar event per area, parallel to areas[]
   status?: MinutaStatus;
   responsibleUids?: string[];
   generalInfo?: MinutaGeneralInfo;

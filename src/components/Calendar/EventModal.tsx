@@ -35,7 +35,10 @@ const EventModal: React.FC<EventModalProps> = ({
   }, [event]);
 
   const formatDateForInput = (date: Date): string => {
-    return date.toISOString().split("T")[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -43,7 +46,8 @@ const EventModal: React.FC<EventModalProps> = ({
 
     if (readOnly) return; // Don't save if in read-only mode
 
-    const eventDate = new Date(date);
+    const [year, month, day] = date.split("-").map(Number);
+    const eventDate = new Date(year, month - 1, day);
 
     onSave({
       id: event?.id || "",
@@ -61,14 +65,6 @@ const EventModal: React.FC<EventModalProps> = ({
       onDelete(event.id);
     }
   };
-
-  const colorOptions = [
-    { value: "bg-blue-100 text-blue-800", label: "Azul" },
-    { value: "bg-red-100 text-red-800", label: "Rojo" },
-    { value: "bg-green-100 text-green-800", label: "Verde" },
-    { value: "bg-purple-100 text-purple-800", label: "Morado" },
-    { value: "bg-yellow-100 text-yellow-800", label: "Amarillo" },
-  ];
 
   const isHoliday = event?.type === "holiday";
   const modalTitle = readOnly
@@ -194,26 +190,6 @@ const EventModal: React.FC<EventModalProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Color
-              </label>
-              <div className="grid grid-cols-5 gap-2">
-                {colorOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`h-8 rounded-md ${option.value} ${
-                      color === option.value
-                        ? "ring-2 ring-offset-2 ring-brand-secondary"
-                        : ""
-                    } ${readOnly ? "cursor-default" : ""}`}
-                    onClick={() => !readOnly && setColor(option.value)}
-                    disabled={readOnly}
-                  />
-                ))}
-              </div>
-            </div>
           </div>
 
           {!readOnly && (
