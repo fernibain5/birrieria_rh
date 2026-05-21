@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { X, User, Mail, Building, UserCheck, Phone, Upload, File } from "lucide-react";
-import { UserProfile, UserRole, UserBranch } from "../../types/auth";
+import { UserProfile, UserBranch } from "../../types/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../../firebase/config";
+import { useRoles } from "../../hooks/useRoles";
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -11,15 +12,6 @@ interface UserProfileModalProps {
   user: UserProfile;
   onUserUpdated: () => void;
 }
-
-const ALL_ROLES: { value: UserRole; label: string }[] = [
-  { value: 'mesero', label: 'Mesero' },
-  { value: 'tortillero', label: 'Tortillero' },
-  { value: 'losero', label: 'Losero' },
-  { value: 'cocinero', label: 'Cocinero' },
-  { value: 'admin', label: 'Administrador' },
-  { value: 'user', label: 'Usuario' },
-];
 
 const ALL_BRANCHES: { value: UserBranch; label: string }[] = [
   { value: 'San Pedro', label: 'San Pedro' },
@@ -32,6 +24,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   user,
   onUserUpdated,
 }) => {
+  const { roles } = useRoles();
   const [editedUser, setEditedUser] = useState<UserProfile>(user);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -208,7 +201,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               disabled={loading}
             >
-              {ALL_ROLES.map((role) => (
+              {roles.map((role) => (
                 <option key={role.value} value={role.value}>
                   {role.label}
                 </option>

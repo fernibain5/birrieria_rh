@@ -32,6 +32,13 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
 
+    // Roles: all authenticated users can read; only admins can write
+    match /roles/{roleId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
     // Resources: authenticated users can read, only admins can manage shared files
     match /resources/{resourceId} {
       allow read: if request.auth != null;

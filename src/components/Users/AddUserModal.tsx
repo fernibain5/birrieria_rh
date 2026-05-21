@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { X, User, Mail, Lock, Building, UserCheck, Phone } from "lucide-react";
-import { UserRole, UserBranch } from "../../types/auth";
+import { UserBranch } from "../../types/auth";
 import { createUser, CreateUserData } from "../../services/userService";
+import { useRoles } from "../../hooks/useRoles";
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -26,12 +27,8 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const roleOptions: { value: UserRole; label: string }[] = [
-    { value: "mesero", label: "Mesero" },
-    { value: "tortillero", label: "Tortillero" },
-    { value: "losero", label: "Losero" },
-    { value: "cocinero", label: "Cocinero" },
-  ];
+  const { roles, loading: rolesLoading } = useRoles();
+  const roleOptions = roles.filter(r => r.value !== 'admin' && r.value !== 'user');
 
   const branchOptions: { value: UserBranch; label: string }[] = [
     { value: "San Pedro", label: "San Pedro" },
@@ -270,14 +267,18 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
                 value={formData.role}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
-                disabled={loading}
+                disabled={loading || rolesLoading}
                 required
               >
-                {roleOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                {rolesLoading ? (
+                  <option value="">Cargando...</option>
+                ) : (
+                  roleOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
           )}

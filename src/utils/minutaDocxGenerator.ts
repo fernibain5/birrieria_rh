@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, TableLayoutType, ImageRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, TableLayoutType, ImageRun, PageOrientation } from 'docx';
 import { saveAs } from 'file-saver';
 
 export interface AreaDetail {
@@ -25,7 +25,7 @@ export interface MinutaAttendee {
   email?: string;
 }
 
-const MINUTA_TABLE_COLUMN_WIDTHS = [648, 1620, 2160, 2160, 2052, 2160];
+const MINUTA_TABLE_COLUMN_WIDTHS = [900, 2250, 3000, 3000, 2850, 3000];
 
 // Helper function to fetch image as buffer
 async function fetchImageBuffer(imagePath: string): Promise<ArrayBuffer> {
@@ -63,6 +63,9 @@ export async function generateMinutaDocx({
       {
         properties: {
           page: {
+            size: {
+              orientation: PageOrientation.LANDSCAPE,
+            },
             margin: {
               top: 720,
               right: 720,

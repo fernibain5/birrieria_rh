@@ -38,6 +38,7 @@ const LoginPage: React.FC = () => {
       switch (error.code) {
         case "auth/user-not-found":
         case "auth/wrong-password":
+        case "auth/invalid-credential":
           setError("Correo o contraseña incorrectos");
           break;
         case "auth/invalid-email":

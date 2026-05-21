@@ -6,18 +6,24 @@ import {
   UserCheck,
   Mail,
   Phone,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getAllUsers } from "../services/userService";
 import { UserProfile } from "../types/auth";
+import { useRoles } from "../hooks/useRoles";
+import { seedDefaultRoles } from "../services/roleService";
 import AddUserModal from "../components/Users/AddUserModal";
 import UserProfileModal from "../components/Users/UserProfileModal";
+import ManageRolesModal from "../components/Users/ManageRolesModal";
 
 const UsuariosPage: React.FC = () => {
   const { isAdmin } = useAuth();
+  const { roles, loading: rolesLoading } = useRoles();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showManageRoles, setShowManageRoles] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [error, setError] = useState("");
 
@@ -42,6 +48,13 @@ const UsuariosPage: React.FC = () => {
     }
   }, [isAdmin]);
 
+  // Auto-seed default roles the first time an admin visits and the collection is empty
+  useEffect(() => {
+    if (isAdmin && !rolesLoading && roles.length === 0) {
+      seedDefaultRoles().catch(console.error);
+    }
+  }, [isAdmin, rolesLoading, roles.length]);
+
   const handleUserCreated = () => {
     loadUsers(); // Reload users after creating a new one
   };
@@ -55,27 +68,11 @@ const UsuariosPage: React.FC = () => {
   };
 
   const getRoleLabel = (role: string) => {
-    const roleLabels: { [key: string]: string } = {
-      admin: "Administrador",
-      user: "Usuario",
-      mesero: "Mesero",
-      tortillero: "Tortillero",
-      losero: "Losero",
-      cocinero: "Cocinero",
-    };
-    return roleLabels[role] || role;
+    return roles.find(r => r.value === role)?.label ?? role;
   };
 
   const getRoleColor = (role: string) => {
-    const roleColors: { [key: string]: string } = {
-      admin: "bg-red-100 text-red-800",
-      user: "bg-gray-100 text-gray-800",
-      mesero: "bg-blue-100 text-blue-800",
-      tortillero: "bg-green-100 text-green-800",
-      losero: "bg-yellow-100 text-yellow-800",
-      cocinero: "bg-purple-100 text-purple-800",
-    };
-    return roleColors[role] || "bg-gray-100 text-gray-800";
+    return roles.find(r => r.value === role)?.color ?? 'bg-gray-100 text-gray-800';
   };
 
   // Group users by branch
@@ -120,13 +117,22 @@ const UsuariosPage: React.FC = () => {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primaryHover focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
-            >
-              <UserPlus size={20} className="mr-2" />
-              Agregar Usuario
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowManageRoles(true)}
+                className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
+              >
+                <Settings size={18} className="mr-2" />
+                Gestionar Roles
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primaryHover focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
+              >
+                <UserPlus size={20} className="mr-2" />
+                Agregar Usuario
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -339,6 +345,11 @@ const UsuariosPage: React.FC = () => {
       </div>
 
       {/* Modals */}
+      <ManageRolesModal
+        isOpen={showManageRoles}
+        onClose={() => setShowManageRoles(false)}
+      />
+
       {showAddModal && (
         <AddUserModal
           isOpen={showAddModal}

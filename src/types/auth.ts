@@ -1,7 +1,14 @@
 import { User } from 'firebase/auth';
 
-export type UserRole = 'admin' | 'user' | 'mesero' | 'tortillero' | 'losero' | 'cocinero';
+export type UserRole = string;
 export type UserBranch = 'San Pedro' | 'Las Quintas';
+
+export interface RoleDefinition {
+  value: string;
+  label: string;
+  color: string;
+  isSystem: boolean;
+}
 
 export interface UserProfile {
   uid: string;
