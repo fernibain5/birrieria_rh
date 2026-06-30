@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getRoles } from '../services/roleService';
 import { RoleDefinition } from '../types/auth';
 
 export function useRoles() {
@@ -8,16 +7,10 @@ export function useRoles() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'roles'), orderBy('label'));
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        setRoles(snapshot.docs.map(d => d.data() as RoleDefinition));
-        setLoading(false);
-      },
-      () => setLoading(false),
-    );
-    return unsubscribe;
+    getRoles()
+      .then(setRoles)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
   return { roles, loading };

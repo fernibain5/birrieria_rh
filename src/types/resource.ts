@@ -1,5 +1,3 @@
-import { Timestamp } from "firebase/firestore";
-
 export interface Resource {
   id: string;
   fileName: string;
@@ -10,7 +8,7 @@ export interface Resource {
   size: number;
   order: number;
   adminOnly: boolean;
-  createdAt: Timestamp | null;
+  createdAt: Date | null;
   createdBy: string;
 }
 

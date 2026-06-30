@@ -11,6 +11,7 @@ import RecursosPage from './pages/RecursosPage';
 import ReglamentoPage from './pages/ReglamentoPage';
 import UsuariosPage from './pages/UsuariosPage';
 import ContratosPage from './pages/ContratosPage';
+import ChecadorPage from './pages/ChecadorPage';
 
 function App() {
   return (
@@ -46,6 +47,14 @@ function App() {
               element={
                 <ProtectedRoute adminOnly>
                   <UsuariosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="checador"
+              element={
+                <ProtectedRoute adminOnly>
+                  <ChecadorPage />
                 </ProtectedRoute>
               }
             />

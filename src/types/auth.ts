@@ -1,5 +1,3 @@
-import { User } from 'firebase/auth';
-
 export type UserRole = string;
 export type UserBranch = 'San Pedro' | 'Las Quintas';
 
@@ -21,10 +19,10 @@ export interface UserProfile {
 }
 
 export interface AuthContextType {
-  currentUser: User | null;
+  currentUser: { uid: string } | null;
   userProfile: UserProfile | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
   isAdmin: boolean;
-} 
+}

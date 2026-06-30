@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, User, Mail, Building, UserCheck, Phone, Upload, File } from "lucide-react";
+import { X, User, Mail, Building, UserCheck, Phone } from "lucide-react";
 import { UserProfile, UserBranch } from "../../types/auth";
-import { doc, updateDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../../firebase/config";
+import { apiPatch } from "../../services/apiClient";
 import { useRoles } from "../../hooks/useRoles";
 
 interface UserProfileModalProps {
@@ -29,61 +27,17 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
-  const [uploadingFiles, setUploadingFiles] = useState(false);
-  const [allFiles, setAllFiles] = useState<string[]>(user.allFiles || []);
 
   useEffect(() => {
     setEditedUser(user);
-    setAllFiles(user.allFiles || []);
   }, [user]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setEditedUser((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setEditedUser((prev) => ({ ...prev, [name]: value }));
     setIsEditing(true);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setSelectedFiles(e.target.files);
-      setIsEditing(true);
-    }
-  };
-
-  const uploadFiles = async () => {
-    if (!selectedFiles) return;
-
-    setUploadingFiles(true);
-    const newFileUrls: string[] = [];
-
-    try {
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
-        const storageRef = ref(storage, `users/${user.uid}/files/${file.name}`);
-        await uploadBytes(storageRef, file);
-        const downloadUrl = await getDownloadURL(storageRef);
-        newFileUrls.push(downloadUrl);
-      }
-
-      const updatedFiles = [...allFiles, ...newFileUrls];
-      setAllFiles(updatedFiles);
-      setEditedUser(prev => ({
-        ...prev,
-        allFiles: updatedFiles
-      }));
-      setSelectedFiles(null);
-    } catch (error) {
-      console.error("Error uploading files:", error);
-      setError("Error al subir los archivos. Por favor, intenta nuevamente.");
-    } finally {
-      setUploadingFiles(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,23 +46,16 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     setError("");
 
     try {
-      if (selectedFiles) {
-        await uploadFiles();
-      }
-
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
+      await apiPatch(`/users/${user.uid}`, {
         displayName: editedUser.displayName,
         role: editedUser.role,
         branch: editedUser.branch,
         phoneNumber: editedUser.phoneNumber,
-        allFiles: editedUser.allFiles,
       });
-
       onUserUpdated();
       onClose();
-    } catch (error) {
-      console.error("Error updating user:", error);
+    } catch (err) {
+      console.error("Error updating user:", err);
       setError("Error al actualizar el usuario. Por favor, intenta nuevamente.");
     } finally {
       setLoading(false);
@@ -124,9 +71,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center">
             <User className="text-brand-secondary mr-3" size={24} />
-            <h2 className="text-xl font-semibold text-gray-900">
-              Perfil de Usuario
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-900">Perfil de Usuario</h2>
           </div>
           <button
             onClick={onClose}
@@ -147,10 +92,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* Name */}
           <div>
-            <label
-              htmlFor="displayName"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
+            <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
               <User size={16} className="inline mr-2" />
               Nombre Completo
             </label>
@@ -168,10 +110,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* Email (read-only) */}
           <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               <Mail size={16} className="inline mr-2" />
               Correo Electrónico
             </label>
@@ -186,10 +125,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* Role */}
           <div>
-            <label
-              htmlFor="role"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
+            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
               <UserCheck size={16} className="inline mr-2" />
               Rol
             </label>
@@ -211,10 +147,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* Branch */}
           <div>
-            <label
-              htmlFor="branch"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
+            <label htmlFor="branch" className="block text-sm font-medium text-gray-700 mb-2">
               <Building size={16} className="inline mr-2" />
               Sucursal
             </label>
@@ -236,10 +169,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
           {/* Phone Number */}
           <div>
-            <label
-              htmlFor="phoneNumber"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
+            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
               <Phone size={16} className="inline mr-2" />
               Número de Teléfono
             </label>
@@ -255,87 +185,22 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             />
           </div>
 
-          {/* File Upload */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Upload size={16} className="inline mr-2" />
-              Archivos
-            </label>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-              <div className="space-y-1 text-center">
-                <div className="flex text-sm text-gray-600">
-                  <label
-                    htmlFor="file-upload"
-                    className="relative cursor-pointer bg-white rounded-md font-medium text-brand-secondary hover:text-brand-secondary focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-brand-secondary"
-                  >
-                    <span>Subir archivos</span>
-                    <input
-                      id="file-upload"
-                      name="file-upload"
-                      type="file"
-                      multiple
-                      className="sr-only"
-                      onChange={handleFileChange}
-                      disabled={loading || uploadingFiles}
-                    />
-                  </label>
-                  <p className="pl-1">o arrastrar y soltar</p>
-                </div>
-                <p className="text-xs text-gray-500">
-                  PNG, JPG, PDF hasta 10MB
-                </p>
-              </div>
-            </div>
-            {selectedFiles && (
-              <div className="mt-2">
-                <p className="text-sm text-gray-600">
-                  {selectedFiles.length} archivo(s) seleccionado(s)
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* File List */}
-          {allFiles.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">
-                <File size={16} className="inline mr-2" />
-                Archivos Subidos
-              </h3>
-              <ul className="space-y-2">
-                {allFiles.map((fileUrl, index) => (
-                  <li key={index} className="flex items-center text-sm text-gray-600">
-                    <File size={16} className="mr-2" />
-                    <a
-                      href={fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-secondary hover:text-brand-secondary"
-                    >
-                      {fileUrl.split('/').pop()}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Submit Button */}
+          {/* Actions */}
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-secondary"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               disabled={loading}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={!isEditing || loading || uploadingFiles}
-              className="px-4 py-2 text-sm font-medium text-white bg-brand-primary border border-transparent rounded-md hover:bg-brand-primaryHover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!isEditing || loading}
+              className="px-4 py-2 text-sm font-medium text-white bg-brand-primary border border-transparent rounded-md hover:bg-brand-primaryHover disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading || uploadingFiles ? "Guardando..." : "Guardar Cambios"}
+              {loading ? "Guardando..." : "Guardar Cambios"}
             </button>
           </div>
         </form>
@@ -344,4 +209,4 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   );
 };
 
-export default UserProfileModal; 
+export default UserProfileModal;

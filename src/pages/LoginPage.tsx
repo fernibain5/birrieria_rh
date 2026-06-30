@@ -31,28 +31,8 @@ const LoginPage: React.FC = () => {
       setLoading(true);
       await login(email, password);
       navigate("/dashboard");
-    } catch (error: any) {
-      console.error("Login error:", error);
-
-      // Handle specific Firebase auth errors
-      switch (error.code) {
-        case "auth/user-not-found":
-        case "auth/wrong-password":
-        case "auth/invalid-credential":
-          setError("Correo o contraseña incorrectos");
-          break;
-        case "auth/invalid-email":
-          setError("Correo electrónico inválido");
-          break;
-        case "auth/user-disabled":
-          setError("Esta cuenta ha sido deshabilitada");
-          break;
-        case "auth/too-many-requests":
-          setError("Demasiados intentos fallidos. Intenta más tarde");
-          break;
-        default:
-          setError("Error al iniciar sesión. Intenta nuevamente");
-      }
+    } catch {
+      setError("Correo o contraseña incorrectos");
     } finally {
       setLoading(false);
     }
@@ -97,7 +77,7 @@ const LoginPage: React.FC = () => {
                 id="email"
                 name="email"
                 type="email"
-                autoComplete="email"
+
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -115,7 +95,7 @@ const LoginPage: React.FC = () => {
                 id="password"
                 name="password"
                 type="password"
-                autoComplete="current-password"
+
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
