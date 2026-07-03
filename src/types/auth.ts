@@ -8,6 +8,12 @@ export interface RoleDefinition {
   isSystem: boolean;
 }
 
+export interface LinkedEmployee {
+  id: number;
+  name: string;
+  hikvisionId: string;
+}
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -15,7 +21,11 @@ export interface UserProfile {
   branch?: UserBranch;
   displayName?: string;
   phoneNumber?: string;
+  hireDate?: string;
+  birthDate?: string;
   allFiles?: string[];
+  employeeId?: number;
+  employee?: LinkedEmployee;
 }
 
 export interface AuthContextType {

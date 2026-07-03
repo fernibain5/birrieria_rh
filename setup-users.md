@@ -68,9 +68,9 @@ After creating users, you need to set their roles in Firestore:
 1. Start your development server: `npm run dev`
 2. Try logging in with both accounts
 3. Verify that:
-   - Admin user can see the **Checador** tab
+   - Admin user can see the **Incidencias** tab
    - Admin user can add/edit events in the calendar
-   - Regular user cannot see the **Checador** tab
+   - Regular user cannot see the **Incidencias** tab
    - Regular user can only view events (read-only mode)
 
 ## 6. Security Rules (Optional - for production)

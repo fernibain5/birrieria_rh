@@ -60,8 +60,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       show: isAdmin,
     },
     {
-      name: "Checador",
-      path: "/dashboard/checador",
+      name: "Incidencias",
+      path: "/dashboard/incidencias",
       icon: <Clock size={20} />,
       show: isAdmin,
     },

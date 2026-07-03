@@ -16,14 +16,9 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { renderAsync } from "docx-preview";
-import * as XLSX from "xlsx";
 import {
   AlertCircle,
   Check,
-  File,
-  FileImage,
-  FileText,
   GripVertical,
   Loader2,
   Plus,
@@ -39,36 +34,13 @@ import {
   uploadResource,
 } from "../services/resourceService";
 import { Resource } from "../types/resource";
+import { FilePreview, formatFileSize, getFileIcon } from "../components/FilePreview";
+import { downloadFile } from "../utils/downloadFile";
 
 type ResourceView = "general" | "admin";
 
-const formatFileSize = (bytes: number) => {
-  if (!bytes) {
-    return "Tamano no disponible";
-  }
-
-  const units = ["B", "KB", "MB", "GB"];
-  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const size = bytes / 1024 ** unitIndex;
-
-  return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
-};
-
-const getResourceIcon = (resource: Resource) => {
-  if (resource.contentType.includes("image")) {
-    return FileImage;
-  }
-
-  if (
-    resource.contentType.includes("pdf") ||
-    isWordResource(resource) ||
-    isSpreadsheetResource(resource)
-  ) {
-    return FileText;
-  }
-
-  return File;
-};
+const getResourceIcon = (resource: Resource) =>
+  getFileIcon(resource.originalName, resource.contentType);
 
 const getCreatedDate = (resource: Resource) => {
   const date = resource.createdAt?.toDate?.();
@@ -79,34 +51,6 @@ const getCreatedDate = (resource: Resource) => {
       year: "numeric",
     }).format(date)
     : "Fecha pendiente";
-};
-
-const getFileExtension = (fileName: string) => {
-  const extension = fileName.split(".").pop();
-  return extension && extension !== fileName ? extension.toUpperCase() : "FILE";
-};
-
-const isWordResource = (resource: Resource) => {
-  const originalName = resource.originalName.toLowerCase();
-
-  return (
-    resource.contentType.includes("word") ||
-    resource.contentType.includes("officedocument.wordprocessingml") ||
-    originalName.endsWith(".doc") ||
-    originalName.endsWith(".docx")
-  );
-};
-
-const isSpreadsheetResource = (resource: Resource) => {
-  const originalName = resource.originalName.toLowerCase();
-
-  return (
-    resource.contentType.includes("spreadsheet") ||
-    resource.contentType.includes("excel") ||
-    originalName.endsWith(".xls") ||
-    originalName.endsWith(".xlsx") ||
-    originalName.endsWith(".csv")
-  );
 };
 
 const getResourceOrder = (resource: Resource) =>
@@ -124,256 +68,6 @@ const getVisibleResources = (
       isAdmin ? resource.adminOnly === (activeView === "admin") : !resource.adminOnly
     )
     .sort((resourceA, resourceB) => getResourceOrder(resourceA) - getResourceOrder(resourceB));
-
-const DocxPreview: React.FC<{ resource: Resource }> = ({ resource }) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const documentRef = useRef<HTMLDivElement | null>(null);
-  const styleRef = useRef<HTMLDivElement | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
-  const [scale, setScale] = useState(0.38);
-
-  useEffect(() => {
-    let canceled = false;
-
-    const renderDocx = async () => {
-      if (!documentRef.current || !styleRef.current) {
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setFailed(false);
-        documentRef.current.innerHTML = "";
-        styleRef.current.innerHTML = "";
-
-        const response = await fetch(resource.fileUrl);
-        if (!response.ok) {
-          throw new Error(`DOCX preview failed with status ${response.status}`);
-        }
-
-        const blob = await response.blob();
-
-        if (canceled || !documentRef.current || !styleRef.current) {
-          return;
-        }
-
-        await renderAsync(blob, documentRef.current, styleRef.current, {
-          breakPages: false,
-          className: "docx-card-preview",
-          ignoreFonts: true,
-          inWrapper: false,
-          renderChanges: false,
-          renderComments: false,
-          renderEndnotes: false,
-          renderFooters: false,
-          renderFootnotes: false,
-          renderHeaders: false,
-        });
-
-        const page = documentRef.current.querySelector(".docx") as HTMLElement | null;
-        const containerWidth = containerRef.current?.clientWidth || 320;
-        const pageWidth = page?.scrollWidth || 816;
-        setScale(Math.min(containerWidth / pageWidth, 0.65));
-      } catch (error) {
-        console.error("Error rendering DOCX preview:", error);
-        if (!canceled) {
-          setFailed(true);
-        }
-      } finally {
-        if (!canceled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    renderDocx();
-
-    return () => {
-      canceled = true;
-    };
-  }, [resource.fileUrl]);
-
-  if (failed) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center bg-gray-50 px-6 text-center">
-        <FileText size={42} className="text-brand-secondary" />
-        <span className="mt-3 rounded-md bg-white px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm">
-          DOCX
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div ref={containerRef} className="relative h-full overflow-hidden bg-white">
-      <div ref={styleRef} />
-      {loading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
-          <Loader2 className="animate-spin text-brand-secondary" size={28} />
-        </div>
-      )}
-      <div
-        ref={documentRef}
-        className="origin-top-left text-gray-900"
-        style={{
-          transform: `scale(${scale})`,
-          width: `${100 / scale}%`,
-        }}
-      />
-    </div>
-  );
-};
-
-const SpreadsheetPreview: React.FC<{ resource: Resource }> = ({ resource }) => {
-  const [rows, setRows] = useState<string[][]>([]);
-  const [sheetName, setSheetName] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let canceled = false;
-
-    const renderSpreadsheet = async () => {
-      try {
-        setLoading(true);
-        setFailed(false);
-
-        const response = await fetch(resource.fileUrl);
-        if (!response.ok) {
-          throw new Error(`Spreadsheet preview failed with status ${response.status}`);
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: "array" });
-        const firstSheetName = workbook.SheetNames[0];
-
-        if (!firstSheetName) {
-          throw new Error("Spreadsheet has no sheets");
-        }
-
-        const worksheet = workbook.Sheets[firstSheetName];
-        const previewRows = XLSX.utils
-          .sheet_to_json<string[]>(worksheet, {
-            blankrows: false,
-            defval: "",
-            header: 1,
-            raw: false,
-          })
-          .slice(0, 16)
-          .map((row) => row.slice(0, 8).map((cell) => String(cell)));
-
-        if (!canceled) {
-          setSheetName(firstSheetName);
-          setRows(previewRows);
-        }
-      } catch (error) {
-        console.error("Error rendering spreadsheet preview:", error);
-        if (!canceled) {
-          setFailed(true);
-        }
-      } finally {
-        if (!canceled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    renderSpreadsheet();
-
-    return () => {
-      canceled = true;
-    };
-  }, [resource.fileUrl]);
-
-  if (failed || (!loading && rows.length === 0)) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center bg-gray-50 px-6 text-center">
-        <FileText size={42} className="text-brand-secondary" />
-        <span className="mt-3 rounded-md bg-white px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm">
-          {getFileExtension(resource.originalName)}
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative h-full overflow-hidden bg-white">
-      {loading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">
-          <Loader2 className="animate-spin text-brand-secondary" size={28} />
-        </div>
-      )}
-
-      <div className="border-b border-gray-200 bg-gray-50 px-3 py-2 text-left text-xs font-semibold text-gray-600">
-        {sheetName || "Hoja 1"}
-      </div>
-      <div className="overflow-hidden">
-        <table className="w-full table-fixed border-collapse text-[10px] leading-tight text-gray-700">
-          <tbody>
-            {rows.map((row, rowIndex) => (
-              <tr key={`${resource.id}-row-${rowIndex}`}>
-                {row.map((cell, cellIndex) => (
-                  <td
-                    key={`${resource.id}-cell-${rowIndex}-${cellIndex}`}
-                    className={`h-7 truncate border border-gray-200 px-2 ${rowIndex === 0
-                        ? "bg-brand-secondarySoft font-semibold text-brand-primary"
-                        : ""
-                      }`}
-                  >
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
-
-const ResourcePreview: React.FC<{ resource: Resource }> = ({ resource }) => {
-  const ResourceIcon = getResourceIcon(resource);
-
-  if (resource.contentType.includes("image")) {
-    return (
-      <img
-        src={resource.fileUrl}
-        alt={resource.fileName}
-        className="h-full w-full object-cover"
-        loading="lazy"
-      />
-    );
-  }
-
-  if (resource.contentType.includes("pdf")) {
-    return (
-      <iframe
-        src={`${resource.fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-        title={`Vista previa de ${resource.fileName}`}
-        className="h-full w-full border-0 bg-white pointer-events-none"
-      />
-    );
-  }
-
-  if (isWordResource(resource)) {
-    return <DocxPreview resource={resource} />;
-  }
-
-  if (isSpreadsheetResource(resource)) {
-    return <SpreadsheetPreview resource={resource} />;
-  }
-
-  return (
-    <div className="flex h-full flex-col items-center justify-center bg-gray-50 px-6 text-center">
-      <ResourceIcon size={42} className="text-brand-secondary" />
-      <span className="mt-3 rounded-md bg-white px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm">
-        {getFileExtension(resource.originalName)}
-      </span>
-    </div>
-  );
-};
 
 const getErrorDetails = (error: unknown) => {
   const firebaseError = error as { code?: unknown; name?: unknown };
@@ -480,7 +174,12 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
           className="mt-4 block h-64 w-full overflow-hidden rounded-md border border-gray-200 bg-gray-50 text-left focus:outline-none focus:ring-2 focus:ring-brand-secondary disabled:cursor-not-allowed disabled:opacity-70 sm:h-72"
           title="Descargar recurso"
         >
-          <ResourcePreview resource={resource} />
+          <FilePreview
+            fileUrl={resource.fileUrl}
+            fileName={resource.fileName}
+            originalName={resource.originalName}
+            contentType={resource.contentType}
+          />
         </button>
 
         <p className="mt-4 pr-24 text-sm text-gray-500">
@@ -666,30 +365,10 @@ const RecursosPage: React.FC = () => {
   };
 
   const handleDownload = async (resource: Resource) => {
-    try {
-      setDownloadingId(resource.id);
-      setError("");
-
-      const response = await fetch(resource.fileUrl);
-      if (!response.ok) {
-        throw new Error(`Download request failed with status ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = resource.originalName || resource.fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
-    } catch (error) {
-      console.error("Error forcing resource download:", error);
-      window.open(resource.fileUrl, "_blank", "noopener,noreferrer");
-    } finally {
-      setDownloadingId(null);
-    }
+    setDownloadingId(resource.id);
+    setError("");
+    await downloadFile(resource.fileUrl, resource.originalName || resource.fileName);
+    setDownloadingId(null);
   };
 
   const handleDelete = async (resource: Resource) => {

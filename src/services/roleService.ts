@@ -9,6 +9,11 @@ export const createRole = async (role: Omit<RoleDefinition, 'isSystem'>): Promis
   await apiPost('/roles', role);
 };
 
+// The backend upserts on `value`, so updating a role's label/color reuses the same endpoint.
+export const updateRole = async (role: Omit<RoleDefinition, 'isSystem'>): Promise<void> => {
+  await apiPost('/roles', role);
+};
+
 export const deleteRole = async (value: string): Promise<void> => {
   await apiDelete(`/roles/${value}`);
 };

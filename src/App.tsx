@@ -10,8 +10,9 @@ import HistorialMinutasPage from './pages/HistorialMinutasPage';
 import RecursosPage from './pages/RecursosPage';
 import ReglamentoPage from './pages/ReglamentoPage';
 import UsuariosPage from './pages/UsuariosPage';
+import UsuarioDetailPage from './pages/UsuarioDetailPage';
 import ContratosPage from './pages/ContratosPage';
-import ChecadorPage from './pages/ChecadorPage';
+import IncidenciasPage from './pages/IncidenciasPage';
 
 function App() {
   return (
@@ -51,10 +52,18 @@ function App() {
               }
             />
             <Route
-              path="checador"
+              path="usuarios/:uid"
               element={
                 <ProtectedRoute adminOnly>
-                  <ChecadorPage />
+                  <UsuarioDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="incidencias"
+              element={
+                <ProtectedRoute adminOnly>
+                  <IncidenciasPage />
                 </ProtectedRoute>
               }
             />

@@ -35,6 +35,8 @@ export interface AttendanceEmployee {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Only present in the response right after creation — the device PIN. */
+  passcode?: string;
 }
 
 export interface AttendanceQuery {

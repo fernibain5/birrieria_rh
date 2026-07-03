@@ -27,7 +27,8 @@ async function handle<T>(res: Response): Promise<T> {
     const body = await res.text();
     throw new Error(`API ${res.status}: ${body}`);
   }
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export async function apiGet<T>(path: string): Promise<T> {

@@ -6,8 +6,10 @@ export interface CreateUserData {
   password: string;
   displayName: string;
   role: string;
-  branch: UserBranch;
+  branch: UserBranch | '';
   phoneNumber: string;
+  hireDate?: string;
+  birthDate?: string;
 }
 
 export const createUser = async (userData: CreateUserData): Promise<string> => {
@@ -19,6 +21,21 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
   return apiGet<UserProfile[]>('/users');
 };
 
+export const getUserById = async (id: string): Promise<UserProfile> => {
+  return apiGet<UserProfile>(`/users/${id}`);
+};
+
 export const updateUser = async (id: string, data: Partial<CreateUserData>): Promise<UserProfile> => {
   return apiPatch<UserProfile>(`/users/${id}`, data);
+};
+
+export const changeUserPassword = async (id: string, password: string): Promise<void> => {
+  await apiPatch<UserProfile>(`/users/${id}`, { password });
+};
+
+export const linkEmployee = async (
+  id: string,
+  employeeId: number | null,
+): Promise<UserProfile> => {
+  return apiPatch<UserProfile>(`/users/${id}`, { employeeId });
 };

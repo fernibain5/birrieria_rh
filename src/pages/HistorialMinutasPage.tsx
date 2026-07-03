@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Download, FileText, RefreshCw } from 'lucide-react';
+import { CheckCircle, ChevronDown, ChevronUp, Download, FileText, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { completeMinutaArea, getAllMinutas } from '../services/minutaService';
 import { Minuta, MinutaArea, MinutaStatus } from '../types/Minuta';
@@ -25,6 +25,7 @@ const HistorialMinutasPage: React.FC = () => {
   const [activeStatus, setActiveStatus] = useState<MinutaStatus>('pending');
   const [isLoading, setIsLoading] = useState(true);
   const [completingKey, setCompletingKey] = useState<string | null>(null);
+  const [expandedMinutas, setExpandedMinutas] = useState<Set<string>>(new Set());
   const [selectedBranch, setSelectedBranch] = useState<UserBranch>(
     (userProfile?.branch as UserBranch) ?? 'San Pedro'
   );
@@ -72,6 +73,18 @@ const HistorialMinutasPage: React.FC = () => {
     }),
     [branchMinutas]
   );
+
+  const toggleAreasVisibility = (minutaId: string) => {
+    setExpandedMinutas(current => {
+      const next = new Set(current);
+      if (next.has(minutaId)) {
+        next.delete(minutaId);
+      } else {
+        next.add(minutaId);
+      }
+      return next;
+    });
+  };
 
   const canCompleteArea = (area: MinutaArea) => {
     if (!userProfile || getStatus(area.status) === 'completed') {
@@ -228,8 +241,20 @@ const HistorialMinutasPage: React.FC = () => {
 
               {minuta.areas && minuta.areas.length > 0 ? (
                 <div className="mb-4">
-                  <strong className="text-sm text-gray-600">Partidas:</strong>
-                  <div className="mt-2 space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleAreasVisibility(minuta.id)}
+                    className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-800"
+                  >
+                    {expandedMinutas.has(minuta.id) ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                    Partidas ({minuta.areas.length})
+                  </button>
+                  {expandedMinutas.has(minuta.id) && (
+                    <div className="mt-2 space-y-3">
                     {minuta.areas.map((area, idx) => {
                       const completionKey = `${minuta.id}-${idx}`;
 
@@ -272,7 +297,8 @@ const HistorialMinutasPage: React.FC = () => {
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="mb-4">

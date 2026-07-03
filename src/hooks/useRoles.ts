@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getRoles } from '../services/roleService';
 import { RoleDefinition } from '../types/auth';
 
@@ -6,12 +6,18 @@ export function useRoles() {
   const [roles, setRoles] = useState<RoleDefinition[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getRoles()
-      .then(setRoles)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+  const refetch = useCallback(async () => {
+    try {
+      setRoles(await getRoles());
+    } catch (error) {
+      console.error(error);
+    }
   }, []);
 
-  return { roles, loading };
+  useEffect(() => {
+    setLoading(true);
+    refetch().finally(() => setLoading(false));
+  }, [refetch]);
+
+  return { roles, loading, refetch };
 }

@@ -96,7 +96,7 @@ function formatDateTime(isoString: string): { date: string; time: string } {
 
 const EMPTY_FORM: CreateEmployeeData = { hikvisionId: '', name: '', department: '', email: '' };
 
-const ChecadorPage: React.FC = () => {
+const IncidenciasPage: React.FC = () => {
   const { userProfile, isAdmin } = useAuth();
 
   // Restaurant selection
@@ -132,6 +132,7 @@ const ChecadorPage: React.FC = () => {
   const [employeeForm, setEmployeeForm] = useState<CreateEmployeeData>(EMPTY_FORM);
   const [savingEmployee, setSavingEmployee] = useState(false);
   const [employeeError, setEmployeeError] = useState<string | null>(null);
+  const [newEmployeePasscode, setNewEmployeePasscode] = useState<{ name: string; passcode: string } | null>(null);
 
   // ─── Determine restaurantId on mount ─────────────────────────────────────
   useEffect(() => {
@@ -245,6 +246,7 @@ const ChecadorPage: React.FC = () => {
     setEditingEmployee(null);
     setEmployeeForm(EMPTY_FORM);
     setEmployeeError(null);
+    setNewEmployeePasscode(null);
     setShowAddForm(true);
   }
 
@@ -281,10 +283,15 @@ const ChecadorPage: React.FC = () => {
       };
       if (editingEmployee) {
         await updateEmployee(restaurantId, editingEmployee.id, data);
+        cancelForm();
       } else {
-        await createEmployee(restaurantId, data);
+        const created = await createEmployee(restaurantId, data);
+        setShowAddForm(false);
+        setEmployeeForm(EMPTY_FORM);
+        if (created.passcode) {
+          setNewEmployeePasscode({ name: created.name, passcode: created.passcode });
+        }
       }
-      cancelForm();
       await loadEmployees();
     } catch (err) {
       setEmployeeError(err instanceof Error ? err.message : 'Error al guardar');
@@ -308,7 +315,7 @@ const ChecadorPage: React.FC = () => {
   if (!restaurantId) {
     return (
       <div className="card">
-        <h1 className="text-2xl font-bold text-brand-primary mb-4">Checador</h1>
+        <h1 className="text-2xl font-bold text-brand-primary mb-4">Incidencias</h1>
         <p className="text-gray-500">No se encontró un restaurante asociado a tu sucursal.</p>
       </div>
     );
@@ -322,7 +329,7 @@ const ChecadorPage: React.FC = () => {
       <div className="card">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-brand-primary">Checador</h1>
+            <h1 className="text-2xl font-bold text-brand-primary">Incidencias</h1>
             {isAdmin && restaurants.length > 1 && (
               <select
                 className="input mt-2"
@@ -516,6 +523,23 @@ const ChecadorPage: React.FC = () => {
             )}
           </div>
 
+          {newEmployeePasscode && (
+            <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 mb-5 flex items-start justify-between gap-4">
+              <p className="text-sm">
+                <strong>{newEmployeePasscode.name}</strong> fue dado de alta en el dispositivo Hikvision.
+                Su PIN de acceso es <strong className="font-mono text-base">{newEmployeePasscode.passcode}</strong>.
+                Compártelo con el empleado — no se volverá a mostrar.
+              </p>
+              <button
+                type="button"
+                className="text-green-700 hover:text-green-900"
+                onClick={() => setNewEmployeePasscode(null)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          )}
+
           {/* Add / Edit form */}
           {showAddForm && (
             <form
@@ -659,4 +683,4 @@ const ChecadorPage: React.FC = () => {
   );
 };
 
-export default ChecadorPage;
+export default IncidenciasPage;

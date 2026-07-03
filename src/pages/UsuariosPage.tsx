@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Users,
   UserPlus,
@@ -7,25 +8,30 @@ import {
   Mail,
   Phone,
   Settings,
+  Search,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getAllUsers } from "../services/userService";
-import { UserProfile } from "../types/auth";
+import { UserProfile, UserBranch } from "../types/auth";
 import { useRoles } from "../hooks/useRoles";
 import { seedDefaultRoles } from "../services/roleService";
 import AddUserModal from "../components/Users/AddUserModal";
-import UserProfileModal from "../components/Users/UserProfileModal";
 import ManageRolesModal from "../components/Users/ManageRolesModal";
+import BranchDropdown from "../components/ui/BranchDropdown";
 
 const UsuariosPage: React.FC = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, userProfile } = useAuth();
+  const navigate = useNavigate();
   const { roles, loading: rolesLoading } = useRoles();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showManageRoles, setShowManageRoles] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [error, setError] = useState("");
+  const [selectedBranch, setSelectedBranch] = useState<UserBranch>(
+    (userProfile?.branch as UserBranch) ?? "San Pedro"
+  );
+  const [nameFilter, setNameFilter] = useState("");
 
   // Load users from Firestore
   const loadUsers = async () => {
@@ -60,11 +66,7 @@ const UsuariosPage: React.FC = () => {
   };
 
   const handleUserClick = (user: UserProfile) => {
-    setSelectedUser(user);
-  };
-
-  const handleUserUpdated = () => {
-    loadUsers(); // Reload users after updating
+    navigate(`/dashboard/usuarios/${user.uid}`, { state: { user } });
   };
 
   const getRoleLabel = (role: string) => {
@@ -75,7 +77,7 @@ const UsuariosPage: React.FC = () => {
     return roles.find(r => r.value === role)?.color ?? 'bg-gray-100 text-gray-800';
   };
 
-  // Group users by branch
+  // Group users by branch (used for the overview stat cards)
   const usersByBranch = users.reduce((acc, user) => {
     const branch = user.branch || "Sin Asignar";
     if (!acc[branch]) {
@@ -84,6 +86,18 @@ const UsuariosPage: React.FC = () => {
     acc[branch].push(user);
     return acc;
   }, {} as { [key: string]: UserProfile[] });
+
+  // Users for the selected branch, further narrowed by the name filter
+  const normalizedNameFilter = nameFilter.trim().toLowerCase();
+  const filteredUsers = users
+    .filter((user) => !user.branch || user.branch === selectedBranch)
+    .filter((user) =>
+      normalizedNameFilter
+        ? (user.displayName || user.email)
+            .toLowerCase()
+            .includes(normalizedNameFilter)
+        : true
+    );
 
   if (!isAdmin) {
     return (
@@ -219,19 +233,40 @@ const UsuariosPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Users by Branch */}
-            {Object.entries(usersByBranch).map(([branch, branchUsers]) => (
-              <div key={branch} className="mb-8">
-                <div className="flex items-center mb-4">
-                  <Building className="text-gray-600 mr-2" size={20} />
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Sucursal {branch}
-                  </h2>
-                  <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
-                    {branchUsers.length} usuarios
-                  </span>
-                </div>
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+              <BranchDropdown
+                selectedBranch={selectedBranch}
+                onBranchChange={setSelectedBranch}
+              />
+              <div className="relative flex-1 max-w-sm">
+                <Search
+                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="text"
+                  value={nameFilter}
+                  onChange={(e) => setNameFilter(e.target.value)}
+                  placeholder="Buscar por nombre..."
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                />
+              </div>
+            </div>
 
+            {/* Users for the selected branch */}
+            <div className="mb-8">
+              <div className="flex items-center mb-4">
+                <Building className="text-gray-600 mr-2" size={20} />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Sucursal {selectedBranch}
+                </h2>
+                <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
+                  {filteredUsers.length} usuarios
+                </span>
+              </div>
+
+              {filteredUsers.length > 0 ? (
                 <div className="mt-4 bg-white shadow-sm rounded-lg overflow-hidden">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -254,7 +289,7 @@ const UsuariosPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {branchUsers.map((user) => (
+                      {filteredUsers.map((user) => (
                         <tr
                           key={user.uid}
                           className="hover:bg-gray-50 cursor-pointer"
@@ -319,27 +354,31 @@ const UsuariosPage: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
-              </div>
-            ))}
-
-            {users.length === 0 && (
-              <div className="text-center py-12">
-                <Users size={48} className="mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No hay usuarios registrados
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Comienza agregando el primer usuario del sistema.
-                </p>
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="inline-flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primaryHover focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
-                >
-                  <UserPlus size={20} className="mr-2" />
-                  Agregar Primer Usuario
-                </button>
-              </div>
-            )}
+              ) : (
+                <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+                  <Users size={48} className="mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {users.length === 0
+                      ? "No hay usuarios registrados"
+                      : "Ningún usuario coincide con la búsqueda"}
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    {users.length === 0
+                      ? "Comienza agregando el primer usuario del sistema."
+                      : "Prueba con otro nombre o cambia la sucursal seleccionada."}
+                  </p>
+                  {users.length === 0 && (
+                    <button
+                      onClick={() => setShowAddModal(true)}
+                      className="inline-flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primaryHover focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
+                    >
+                      <UserPlus size={20} className="mr-2" />
+                      Agregar Primer Usuario
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -355,15 +394,6 @@ const UsuariosPage: React.FC = () => {
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
           onUserCreated={handleUserCreated}
-        />
-      )}
-
-      {selectedUser && (
-        <UserProfileModal
-          isOpen={!!selectedUser}
-          onClose={() => setSelectedUser(null)}
-          user={selectedUser}
-          onUserUpdated={handleUserUpdated}
         />
       )}
     </div>

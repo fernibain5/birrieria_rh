@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Trash2, Plus, Shield } from 'lucide-react';
+import { X, Trash2, Plus, Shield, Pencil, Check } from 'lucide-react';
 import { useRoles } from '../../hooks/useRoles';
-import { createRole, deleteRole } from '../../services/roleService';
+import { createRole, deleteRole, updateRole } from '../../services/roleService';
+import { RoleDefinition } from '../../types/auth';
 
 interface ManageRolesModalProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ const toSlug = (label: string) =>
   label.toLowerCase().trim().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
 const ManageRolesModal: React.FC<ManageRolesModalProps> = ({ isOpen, onClose }) => {
-  const { roles, loading } = useRoles();
+  const { roles, loading, refetch } = useRoles();
 
   const [newLabel, setNewLabel] = useState('');
   const [newValue, setNewValue] = useState('');
@@ -33,6 +34,40 @@ const ManageRolesModal: React.FC<ManageRolesModalProps> = ({ isOpen, onClose }) 
   const [saving, setSaving] = useState(false);
   const [deletingValue, setDeletingValue] = useState<string | null>(null);
   const [error, setError] = useState('');
+
+  const [editingValue, setEditingValue] = useState<string | null>(null);
+  const [editingLabel, setEditingLabel] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const startEditing = (role: RoleDefinition) => {
+    setError('');
+    setEditingValue(role.value);
+    setEditingLabel(role.label);
+  };
+
+  const cancelEditing = () => {
+    setEditingValue(null);
+    setEditingLabel('');
+  };
+
+  const handleSaveEdit = async (role: RoleDefinition) => {
+    const label = editingLabel.trim();
+    if (!label) {
+      setError('El nombre del rol no puede estar vacío.');
+      return;
+    }
+
+    try {
+      setSavingEdit(true);
+      await updateRole({ value: role.value, label, color: role.color });
+      await refetch();
+      cancelEditing();
+    } catch {
+      setError('Error al actualizar el nombre del rol.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const label = e.target.value;
@@ -57,6 +92,7 @@ const ManageRolesModal: React.FC<ManageRolesModalProps> = ({ isOpen, onClose }) 
     try {
       setSaving(true);
       await createRole({ value: newValue, label: newLabel.trim(), color: newColor });
+      await refetch();
       setNewLabel('');
       setNewValue('');
       setNewColor(COLOR_OPTIONS[0].value);
@@ -71,6 +107,7 @@ const ManageRolesModal: React.FC<ManageRolesModalProps> = ({ isOpen, onClose }) 
     try {
       setDeletingValue(value);
       await deleteRole(value);
+      await refetch();
     } catch {
       setError('Error al eliminar el rol.');
     } finally {
@@ -105,23 +142,66 @@ const ManageRolesModal: React.FC<ManageRolesModalProps> = ({ isOpen, onClose }) 
               <ul className="space-y-2">
                 {roles.map((role) => (
                   <li key={role.value} className="flex items-center justify-between py-2 px-3 rounded-md border border-gray-100 bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${role.color}`}>
-                        {role.label}
-                      </span>
-                      <span className="text-xs text-gray-400 font-mono">{role.value}</span>
-                    </div>
-                    {role.isSystem ? (
-                      <span className="text-xs text-gray-400 italic">sistema</span>
+                    {editingValue === role.value ? (
+                      <>
+                        <div className="flex items-center gap-2 flex-1 mr-2">
+                          <input
+                            type="text"
+                            value={editingLabel}
+                            onChange={(e) => setEditingLabel(e.target.value)}
+                            autoFocus
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+                            disabled={savingEdit}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => handleSaveEdit(role)}
+                            disabled={savingEdit}
+                            className="text-green-500 hover:text-green-700 transition-colors disabled:opacity-40"
+                            title="Guardar"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            onClick={cancelEditing}
+                            disabled={savingEdit}
+                            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-40"
+                            title="Cancelar"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </>
                     ) : (
-                      <button
-                        onClick={() => handleDelete(role.value)}
-                        disabled={deletingValue === role.value}
-                        className="text-red-400 hover:text-red-600 transition-colors disabled:opacity-40"
-                        title="Eliminar rol"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <>
+                        <div className="flex items-center gap-3">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${role.color}`}>
+                            {role.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => startEditing(role)}
+                            className="text-gray-400 hover:text-brand-secondary transition-colors"
+                            title="Editar nombre"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          {role.isSystem ? (
+                            <span className="text-xs text-gray-400 italic">sistema</span>
+                          ) : (
+                            <button
+                              onClick={() => handleDelete(role.value)}
+                              disabled={deletingValue === role.value}
+                              className="text-red-400 hover:text-red-600 transition-colors disabled:opacity-40"
+                              title="Eliminar rol"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </>
                     )}
                   </li>
                 ))}
