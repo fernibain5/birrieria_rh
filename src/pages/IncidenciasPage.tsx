@@ -368,15 +368,19 @@ const IncidenciasPage: React.FC = () => {
         {syncResult && (
           <div
             className={`mt-4 px-4 py-3 rounded-lg flex items-center justify-between text-sm font-medium ${
-              syncResult.status === 'success'
-                ? 'bg-green-50 text-green-800 border border-green-200'
-                : 'bg-red-50 text-red-800 border border-red-200'
+              syncResult.status !== 'success'
+                ? 'bg-red-50 text-red-800 border border-red-200'
+                : syncResult.importError
+                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                  : 'bg-green-50 text-green-800 border border-green-200'
             }`}
           >
             <span>
-              {syncResult.status === 'success'
-                ? `✓ Sincronizado — ${syncResult.recordsSynced} registro${syncResult.recordsSynced !== 1 ? 's' : ''} nuevo${syncResult.recordsSynced !== 1 ? 's' : ''}`
-                : `✗ Error al sincronizar${syncResult.errorMessage ? `: ${syncResult.errorMessage}` : ''}`}
+              {syncResult.status !== 'success'
+                ? `✗ Error al sincronizar${syncResult.errorMessage ? `: ${syncResult.errorMessage}` : ''}`
+                : syncResult.importError
+                  ? `⚠ Falló la importación de empleados: ${syncResult.importError} — ${syncResult.recordsSynced} registro${syncResult.recordsSynced !== 1 ? 's' : ''} nuevo${syncResult.recordsSynced !== 1 ? 's' : ''}`
+                  : `✓ Sincronizado — ${syncResult.recordsSynced} registro${syncResult.recordsSynced !== 1 ? 's' : ''} nuevo${syncResult.recordsSynced !== 1 ? 's' : ''}${syncResult.employeesImported ? `, ${syncResult.employeesImported} empleado${syncResult.employeesImported !== 1 ? 's' : ''} importado${syncResult.employeesImported !== 1 ? 's' : ''}` : ''}`}
             </span>
             <button onClick={() => setSyncResult(null)} className="ml-4 opacity-60 hover:opacity-100">
               <X size={14} />
