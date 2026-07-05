@@ -1,4 +1,5 @@
 import {
+  AttendanceRecord,
   PaginatedAttendance,
   SyncResult,
   AttendanceEmployee,
@@ -51,6 +52,26 @@ export async function getAttendance(
     limit: query.limit,
   });
   return apiFetch<PaginatedAttendance>(`/restaurants/${restaurantId}/attendance${qs}`);
+}
+
+/** Fetch every record in the range — the API caps `limit` at 200 per page,
+ *  so a single request can silently truncate busy periods. */
+export async function getAllAttendance(
+  restaurantId: number,
+  query: Omit<AttendanceQuery, 'page' | 'limit'>,
+): Promise<AttendanceRecord[]> {
+  const records: AttendanceRecord[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const res = await getAttendance(restaurantId, { ...query, page, limit: 200 });
+    records.push(...res.data);
+    totalPages = res.totalPages;
+    page += 1;
+  } while (page <= totalPages);
+
+  return records;
 }
 
 export async function syncAttendance(restaurantId: number): Promise<SyncResult> {

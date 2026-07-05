@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, Download, Plus, Pencil, Trash2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  getAttendance,
   syncAttendance,
   downloadAttendanceCsv,
   getEmployees,
@@ -12,87 +11,19 @@ import {
   deleteEmployee,
 } from '../services/attendanceApiService';
 import type {
-  AttendanceRecord,
-  PaginatedAttendance,
   SyncResult,
   AttendanceEmployee,
-  AttendanceQuery,
   CreateEmployeeData,
   Restaurant,
 } from '../types/Attendance';
-
-// One row per employee per day — first event = entrada, last = salida
-interface DayRecord {
-  key: string;
-  employeeId: number;
-  employeeName: string;
-  hikvisionId: string;
-  department: string | null;
-  date: string;           // display date (localised)
-  entrada: AttendanceRecord;
-  salida: AttendanceRecord | null; // null when only one event that day
-}
-
-/** Collapse raw records into one DayRecord per (employee, calendar day). */
-function groupByDay(records: AttendanceRecord[]): DayRecord[] {
-  const map = new Map<string, AttendanceRecord[]>();
-
-  for (const r of records) {
-    // Use the LOCAL date from the ISO string (device stores local time)
-    const localDate = new Date(r.checkedAt).toLocaleDateString('en-CA'); // YYYY-MM-DD
-    const key = `${r.employeeId}-${localDate}`;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(r);
-  }
-
-  const result: DayRecord[] = [];
-  for (const [key, recs] of map) {
-    recs.sort((a, b) => new Date(a.checkedAt).getTime() - new Date(b.checkedAt).getTime());
-    const first = recs[0];
-    const last = recs[recs.length - 1];
-    const localDate = new Date(first.checkedAt).toLocaleDateString('en-CA');
-    result.push({
-      key,
-      employeeId: first.employeeId,
-      employeeName: first.employeeName,
-      hikvisionId: first.hikvisionId,
-      department: first.department,
-      date: localDate,
-      entrada: first,
-      salida: recs.length > 1 ? last : null,
-    });
-  }
-
-  // Sort: date descending, then employee name ascending
-  result.sort((a, b) => {
-    if (a.date !== b.date) return b.date.localeCompare(a.date);
-    return a.employeeName.localeCompare(b.employeeName);
-  });
-
-  return result;
-}
+import WeeklyReport from '../components/Incidencias/WeeklyReport';
+import { startOfWeek, endOfWeek } from '../utils/weekUtils';
 
 // Map Firebase branch names → NestJS restaurant IDs
 const BRANCH_TO_RESTAURANT: Record<string, number> = {
   'San Pedro': 1,
   'Las Quintas': 2,
 };
-
-function todayIso(): string {
-  return new Date().toISOString().split('T')[0];
-}
-
-function firstOfMonthIso(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-}
-
-function formatDateTime(isoString: string): { date: string; time: string } {
-  const d = new Date(isoString);
-  const date = d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const time = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  return { date, time };
-}
 
 const EMPTY_FORM: CreateEmployeeData = { hikvisionId: '', name: '', department: '', email: '' };
 
@@ -103,19 +34,9 @@ const IncidenciasPage: React.FC = () => {
   const [restaurantId, setRestaurantId] = useState<number | null>(null);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
 
-  // Attendance state
-  const [attendance, setAttendance] = useState<PaginatedAttendance | null>(null);
-  const [loadingAttendance, setLoadingAttendance] = useState(false);
-  const [attendanceError, setAttendanceError] = useState<string | null>(null);
-
-  // Filters
-  const [filters, setFilters] = useState<AttendanceQuery>({
-    startDate: firstOfMonthIso(),
-    endDate: todayIso(),
-    page: 1,
-    limit: 200, // fetch up to 200 raw events so groupByDay sees the full day for every record
-  });
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | undefined>(undefined);
+  // Weekly report state (lifted here so the CSV download shares the range)
+  const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()));
+  const [reportRefreshKey, setReportRefreshKey] = useState(0);
 
   // Sync state
   const [syncing, setSyncing] = useState(false);
@@ -167,39 +88,7 @@ const IncidenciasPage: React.FC = () => {
     loadEmployees();
   }, [loadEmployees]);
 
-  // ─── Load attendance ──────────────────────────────────────────────────────
-  const loadAttendance = useCallback(
-    async (query: AttendanceQuery) => {
-      if (!restaurantId) return;
-      setLoadingAttendance(true);
-      setAttendanceError(null);
-      try {
-        const data = await getAttendance(restaurantId, query);
-        setAttendance(data);
-      } catch (err) {
-        setAttendanceError(err instanceof Error ? err.message : 'Error al cargar registros');
-      } finally {
-        setLoadingAttendance(false);
-      }
-    },
-    [restaurantId],
-  );
-
-  // Initial load when restaurant is set
-  useEffect(() => {
-    if (restaurantId) {
-      loadAttendance({ ...filters, employeeId: selectedEmployeeId });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restaurantId, loadAttendance]);
-
   // ─── Handlers ────────────────────────────────────────────────────────────
-  function handleSearch() {
-    const q = { ...filters, page: 1, employeeId: selectedEmployeeId };
-    setFilters(q);
-    loadAttendance(q);
-  }
-
   async function handleSync() {
     if (!restaurantId || syncing) return;
     setSyncing(true);
@@ -208,9 +97,8 @@ const IncidenciasPage: React.FC = () => {
       const result = await syncAttendance(restaurantId);
       setSyncResult(result);
       if (result.status === 'success') {
-        const q = { ...filters, page: 1, employeeId: selectedEmployeeId };
-        setFilters(q);
-        await loadAttendance(q);
+        setReportRefreshKey((k) => k + 1);
+        await loadEmployees();
       }
     } catch (err) {
       setSyncResult({
@@ -230,9 +118,8 @@ const IncidenciasPage: React.FC = () => {
     setDownloading(true);
     try {
       await downloadAttendanceCsv(restaurantId, {
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        employeeId: selectedEmployeeId,
+        startDate: weekStart.toISOString(),
+        endDate: endOfWeek(weekStart).toISOString(),
       });
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error al descargar CSV');
@@ -321,8 +208,6 @@ const IncidenciasPage: React.FC = () => {
     );
   }
 
-  const dayRows = groupByDay(attendance?.data ?? []);
-
   return (
     <div className="space-y-6">
       {/* ── Header ── */}
@@ -389,131 +274,14 @@ const IncidenciasPage: React.FC = () => {
         )}
       </div>
 
-      {/* ── Filters ── */}
-      <div className="card">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Filtros</h2>
-        <div className="flex flex-wrap gap-3 items-end">
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Desde</label>
-            <input
-              type="date"
-              className="input"
-              value={filters.startDate ?? ''}
-              onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Hasta</label>
-            <input
-              type="date"
-              className="input"
-              value={filters.endDate ?? ''}
-              onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Empleado</label>
-            <select
-              className="input"
-              value={selectedEmployeeId ?? ''}
-              onChange={(e) =>
-                setSelectedEmployeeId(e.target.value ? Number(e.target.value) : undefined)
-              }
-            >
-              <option value="">Todos</option>
-              {employees
-                .filter((emp) => emp.isActive)
-                .map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-          <button className="btn btn-primary" onClick={handleSearch}>
-            Buscar
-          </button>
-        </div>
-      </div>
-
-      {/* ── Attendance Table ── */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-brand-primary">Registros de Asistencia</h2>
-          {!loadingAttendance && attendance && (
-            <span className="text-sm text-gray-500">
-              {dayRows.length} día{dayRows.length !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-
-        {attendanceError && <p className="text-red-600 text-sm mb-4">{attendanceError}</p>}
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left">
-                <th className="pb-3 font-semibold text-gray-600">Empleado</th>
-                <th className="pb-3 font-semibold text-gray-600">Departamento</th>
-                <th className="pb-3 font-semibold text-gray-600">Fecha</th>
-                <th className="pb-3 font-semibold text-gray-600 text-center">Entrada</th>
-                <th className="pb-3 font-semibold text-gray-600 text-center">Salida</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loadingAttendance ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b border-gray-100">
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <td key={j} className="py-3 pr-4">
-                        <div className="animate-pulse bg-gray-200 rounded h-4 w-24" />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : dayRows.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-10 text-center text-gray-400">
-                    No hay registros para el período seleccionado.
-                  </td>
-                </tr>
-              ) : (
-                dayRows.map((row) => {
-                  const entradaTime = formatDateTime(row.entrada.checkedAt).time;
-                  const salidaTime  = row.salida ? formatDateTime(row.salida.checkedAt).time : null;
-                  const displayDate = new Date(row.date + 'T12:00:00').toLocaleDateString('es-MX', {
-                    weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric',
-                  });
-                  return (
-                    <tr
-                      key={row.key}
-                      className="border-b border-gray-100 hover:bg-brand-primarySoft transition-colors"
-                    >
-                      <td className="py-3 pr-4 font-medium text-gray-800">{row.employeeName}</td>
-                      <td className="py-3 pr-4 text-gray-600">{row.department ?? '—'}</td>
-                      <td className="py-3 pr-4 text-gray-600 capitalize">{displayDate}</td>
-                      <td className="py-3 pr-4 text-center">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          {entradaTime}
-                        </span>
-                      </td>
-                      <td className="py-3 text-center">
-                        {salidaTime ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                            {salidaTime}
-                          </span>
-                        ) : (
-                          <span className="text-gray-300 text-xs">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* ── Weekly Report ── */}
+      <WeeklyReport
+        restaurantId={restaurantId}
+        employees={employees}
+        weekStart={weekStart}
+        onWeekChange={setWeekStart}
+        refreshKey={reportRefreshKey}
+      />
 
       {/* ── Employee Management (admin only) ── */}
       {isAdmin && (
