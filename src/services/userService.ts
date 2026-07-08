@@ -1,4 +1,4 @@
-import { UserProfile, UserBranch } from '../types/auth';
+import { UserProfile, UserBranch, RestDay } from '../types/auth';
 import { apiGet, apiPatch, apiPost } from './apiClient';
 
 export interface CreateUserData {
@@ -10,6 +10,7 @@ export interface CreateUserData {
   phoneNumber: string;
   hireDate?: string;
   birthDate?: string;
+  restDay: RestDay | '';
 }
 
 export const createUser = async (userData: CreateUserData): Promise<string> => {

@@ -12,15 +12,16 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getAllUsers } from "../services/userService";
-import { UserProfile, UserBranch } from "../types/auth";
+import { UserProfile } from "../types/auth";
 import { useRoles } from "../hooks/useRoles";
 import { seedDefaultRoles } from "../services/roleService";
+import { useBranchLock } from "../hooks/useBranchLock";
 import AddUserModal from "../components/Users/AddUserModal";
 import ManageRolesModal from "../components/Users/ManageRolesModal";
 import BranchDropdown from "../components/ui/BranchDropdown";
 
 const UsuariosPage: React.FC = () => {
-  const { isAdmin, userProfile } = useAuth();
+  const { isAdmin, isManager } = useAuth();
   const navigate = useNavigate();
   const { roles, loading: rolesLoading } = useRoles();
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -28,9 +29,7 @@ const UsuariosPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showManageRoles, setShowManageRoles] = useState(false);
   const [error, setError] = useState("");
-  const [selectedBranch, setSelectedBranch] = useState<UserBranch>(
-    (userProfile?.branch as UserBranch) ?? "San Pedro"
-  );
+  const { effectiveBranch, canChooseBranch, setBranch } = useBranchLock();
   const [nameFilter, setNameFilter] = useState("");
 
   // Load users from Firestore
@@ -49,10 +48,10 @@ const UsuariosPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isManager) {
       loadUsers();
     }
-  }, [isAdmin]);
+  }, [isManager]);
 
   // Auto-seed default roles the first time an admin visits and the collection is empty
   useEffect(() => {
@@ -90,7 +89,7 @@ const UsuariosPage: React.FC = () => {
   // Users for the selected branch, further narrowed by the name filter
   const normalizedNameFilter = nameFilter.trim().toLowerCase();
   const filteredUsers = users
-    .filter((user) => !user.branch || user.branch === selectedBranch)
+    .filter((user) => !user.branch || user.branch === effectiveBranch)
     .filter((user) =>
       normalizedNameFilter
         ? (user.displayName || user.email)
@@ -99,7 +98,7 @@ const UsuariosPage: React.FC = () => {
         : true
     );
 
-  if (!isAdmin) {
+  if (!isManager) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -132,13 +131,15 @@ const UsuariosPage: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowManageRoles(true)}
-                className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
-              >
-                <Settings size={18} className="mr-2" />
-                Gestionar Roles
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => setShowManageRoles(true)}
+                  className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
+                >
+                  <Settings size={18} className="mr-2" />
+                  Gestionar Roles
+                </button>
+              )}
               <button
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primaryHover focus:outline-none focus:ring-2 focus:ring-brand-secondary transition-colors"
@@ -235,10 +236,17 @@ const UsuariosPage: React.FC = () => {
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-              <BranchDropdown
-                selectedBranch={selectedBranch}
-                onBranchChange={setSelectedBranch}
-              />
+              {canChooseBranch ? (
+                <BranchDropdown
+                  selectedBranch={effectiveBranch}
+                  onBranchChange={setBranch}
+                />
+              ) : (
+                <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-700">
+                  <Building size={18} className="text-brand-primary shrink-0" />
+                  {effectiveBranch}
+                </div>
+              )}
               <div className="relative flex-1 max-w-sm">
                 <Search
                   size={18}
@@ -259,7 +267,7 @@ const UsuariosPage: React.FC = () => {
               <div className="flex items-center mb-4">
                 <Building className="text-gray-600 mr-2" size={20} />
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Sucursal {selectedBranch}
+                  Sucursal {effectiveBranch}
                 </h2>
                 <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
                   {filteredUsers.length} usuarios

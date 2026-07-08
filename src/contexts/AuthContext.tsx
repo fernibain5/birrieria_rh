@@ -64,6 +64,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const currentUser = userProfile ? { uid: userProfile.uid } : null;
   const isAdmin = userProfile?.role === 'admin';
+  const isGerente = userProfile?.role === 'gerente';
+  const isManager = isAdmin || isGerente;
 
   const value: AuthContextType = {
     currentUser,
@@ -72,6 +74,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     loading,
     isAdmin,
+    isGerente,
+    isManager,
   };
 
   return (

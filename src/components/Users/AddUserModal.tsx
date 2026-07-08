@@ -1,8 +1,10 @@
-import React, { useState } from "react";
-import { X, User, Mail, Lock, Building, UserCheck, Phone, Calendar, Cake } from "lucide-react";
-import { UserBranch } from "../../types/auth";
+import React, { useEffect, useState } from "react";
+import { X, User, Mail, Lock, Building, UserCheck, Phone, Calendar, Cake, CalendarDays } from "lucide-react";
+import { DIAS_DESCANSO } from "../../types/auth";
 import { createUser, CreateUserData } from "../../services/userService";
 import { useRoles } from "../../hooks/useRoles";
+import { useAuth } from "../../contexts/AuthContext";
+import { useBranchLock } from "../../hooks/useBranchLock";
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -15,6 +17,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
   onClose,
   onUserCreated,
 }) => {
+  const { isAdmin } = useAuth();
+  const { effectiveBranch, canChooseBranch } = useBranchLock();
+
   const [formData, setFormData] = useState<CreateUserData>({
     email: "",
     password: "",
@@ -24,18 +29,29 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
     phoneNumber: "",
     hireDate: "",
     birthDate: "",
+    restDay: "",
   });
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [grantAdmin, setGrantAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const { roles, loading: rolesLoading } = useRoles();
-  const roleOptions = roles.filter(r => r.value !== 'admin' && r.value !== 'user');
+  const roleOptions = roles.filter(
+    (r) => r.value !== 'admin' && r.value !== 'user' && (isAdmin || r.value !== 'gerente')
+  );
 
-  const branchOptions: { value: UserBranch; label: string }[] = [
+  const branchOptions: { value: string; label: string }[] = [
     { value: "San Pedro", label: "San Pedro" },
     { value: "Las Quintas", label: "Las Quintas" },
   ];
+
+  // Non-admin callers (gerente) can't pick a branch — lock the form value to
+  // their own branch, matching what happens server-side regardless.
+  useEffect(() => {
+    if (!canChooseBranch && isOpen) {
+      setFormData((prev) => ({ ...prev, branch: effectiveBranch }));
+    }
+  }, [canChooseBranch, effectiveBranch, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +62,8 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
       !formData.email ||
       !formData.password ||
       !formData.displayName ||
-      !formData.phoneNumber
+      !formData.phoneNumber ||
+      !formData.restDay
     ) {
       setError("Todos los campos son obligatorios");
       return;
@@ -68,8 +85,8 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
       setLoading(true);
       await createUser({
         ...formData,
-        role: isAdmin ? "admin" : formData.role,
-        branch: isAdmin ? "" : formData.branch,
+        role: grantAdmin ? "admin" : formData.role,
+        branch: grantAdmin ? "" : formData.branch,
         hireDate: formData.hireDate || undefined,
         birthDate: formData.birthDate || undefined,
       });
@@ -84,8 +101,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
         phoneNumber: "",
         hireDate: "",
         birthDate: "",
+        restDay: "",
       });
-      setIsAdmin(false);
+      setGrantAdmin(false);
 
       onUserCreated();
       onClose();
@@ -246,63 +264,95 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
             />
           </div>
 
-          {/* Hire Date */}
-          <div>
-            <label
-              htmlFor="hireDate"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              <Calendar size={16} className="inline mr-2" />
-              Fecha de Ingreso
-            </label>
-            <input
-              type="date"
-              id="hireDate"
-              name="hireDate"
-              value={formData.hireDate}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
-              disabled={loading}
-            />
+          {/* Hire Date & Birth Date */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                htmlFor="hireDate"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                <Calendar size={16} className="inline mr-2" />
+                Fecha de Ingreso
+              </label>
+              <input
+                type="date"
+                id="hireDate"
+                name="hireDate"
+                value={formData.hireDate}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="birthDate"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                <Cake size={16} className="inline mr-2" />
+                Fecha de Cumpleaños
+              </label>
+              <input
+                type="date"
+                id="birthDate"
+                name="birthDate"
+                value={formData.birthDate}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
+                disabled={loading}
+              />
+            </div>
           </div>
 
-          {/* Birth Date */}
+          {/* Rest day */}
           <div>
             <label
-              htmlFor="birthDate"
+              htmlFor="restDay"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              <Cake size={16} className="inline mr-2" />
-              Fecha de Cumpleaños
+              <CalendarDays size={16} className="inline mr-2" />
+              Día de descanso
             </label>
-            <input
-              type="date"
-              id="birthDate"
-              name="birthDate"
-              value={formData.birthDate}
+            <select
+              id="restDay"
+              name="restDay"
+              value={formData.restDay}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
               disabled={loading}
-            />
+              required
+            >
+              <option value="" disabled>
+                Selecciona un día
+              </option>
+              {DIAS_DESCANSO.map((dia) => (
+                <option key={dia} value={dia}>
+                  {dia}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Admin checkbox */}
-          <div className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              id="isAdmin"
-              checked={isAdmin}
-              onChange={(e) => setIsAdmin(e.target.checked)}
-              disabled={loading}
-              className="h-4 w-4 text-brand-secondary border-gray-300 rounded focus:ring-brand-secondary"
-            />
-            <label htmlFor="isAdmin" className="text-sm font-medium text-gray-700">
-              Administrador
-            </label>
-          </div>
+          {isAdmin && (
+            <div className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                id="grantAdmin"
+                checked={grantAdmin}
+                onChange={(e) => setGrantAdmin(e.target.checked)}
+                disabled={loading}
+                className="h-4 w-4 text-brand-secondary border-gray-300 rounded focus:ring-brand-secondary"
+              />
+              <label htmlFor="grantAdmin" className="text-sm font-medium text-gray-700">
+                Administrador
+              </label>
+            </div>
+          )}
 
           {/* Role */}
-          {!isAdmin && (
+          {!grantAdmin && (
             <div>
               <label
                 htmlFor="role"
@@ -334,7 +384,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
           )}
 
           {/* Branch */}
-          {!isAdmin && (
+          {!grantAdmin && (
             <div>
               <label
                 htmlFor="branch"
@@ -343,21 +393,27 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
                 <Building size={16} className="inline mr-2" />
                 Sucursal
               </label>
-              <select
-                id="branch"
-                name="branch"
-                value={formData.branch}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
-                disabled={loading}
-                required
-              >
-                {branchOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              {canChooseBranch ? (
+                <select
+                  id="branch"
+                  name="branch"
+                  value={formData.branch}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
+                  disabled={loading}
+                  required
+                >
+                  {branchOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-600">
+                  {effectiveBranch}
+                </p>
+              )}
             </div>
           )}
 

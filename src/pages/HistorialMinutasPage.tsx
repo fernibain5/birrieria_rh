@@ -3,10 +3,10 @@ import { CheckCircle, ChevronDown, ChevronUp, Download, FileText, RefreshCw } fr
 import { useAuth } from '../contexts/AuthContext';
 import { completeMinutaArea, getAllMinutas } from '../services/minutaService';
 import { Minuta, MinutaArea, MinutaStatus } from '../types/Minuta';
-import { UserBranch } from '../types/auth';
 import { generateAttendanceListDocx } from '../utils/attendanceListGenerator';
 import { generateMinutaDocx } from '../utils/minutaDocxGenerator';
 import BranchDropdown from '../components/ui/BranchDropdown';
+import { useBranchLock } from '../hooks/useBranchLock';
 
 const tabLabels: Record<MinutaStatus, string> = {
   pending: 'Pendientes',
@@ -21,14 +21,12 @@ const getAreaResponsibleUids = (area: MinutaArea): string[] =>
 
 const HistorialMinutasPage: React.FC = () => {
   const { userProfile, isAdmin } = useAuth();
+  const { effectiveBranch: selectedBranch, canChooseBranch, setBranch: setSelectedBranch } = useBranchLock();
   const [minutas, setMinutas] = useState<Minuta[]>([]);
   const [activeStatus, setActiveStatus] = useState<MinutaStatus>('pending');
   const [isLoading, setIsLoading] = useState(true);
   const [completingKey, setCompletingKey] = useState<string | null>(null);
   const [expandedMinutas, setExpandedMinutas] = useState<Set<string>>(new Set());
-  const [selectedBranch, setSelectedBranch] = useState<UserBranch>(
-    (userProfile?.branch as UserBranch) ?? 'San Pedro'
-  );
   const [message, setMessage] = useState<{
     type: 'success' | 'error';
     text: string;
@@ -146,10 +144,16 @@ const HistorialMinutasPage: React.FC = () => {
     <div className="card">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <BranchDropdown
-            selectedBranch={selectedBranch}
-            onBranchChange={setSelectedBranch}
-          />
+          {canChooseBranch ? (
+            <BranchDropdown
+              selectedBranch={selectedBranch}
+              onBranchChange={setSelectedBranch}
+            />
+          ) : (
+            <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-700">
+              {selectedBranch}
+            </div>
+          )}
           <h1 className="text-2xl font-bold text-gray-800">Historial Minutas</h1>
         </div>
         <button

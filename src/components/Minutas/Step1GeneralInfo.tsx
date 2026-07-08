@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { getAllUsers } from '../../services/userService';
 import { UserProfile } from '../../types/auth';
+import { useBranchLock } from '../../hooks/useBranchLock';
 
 interface AreaDetail {
   area: string;
@@ -23,9 +24,24 @@ interface Step1Props {
 }
 
 const Step1GeneralInfo: React.FC<Step1Props> = ({ generalInfo, setGeneralInfo, topics, setTopics, areas, setAreas, onNext }) => {
+  const { effectiveBranch, canChooseBranch } = useBranchLock();
   const [admins, setAdmins] = useState<UserProfile[]>([]);
   const [openResponsibleDropdown, setOpenResponsibleDropdown] = useState<number | null>(null);
   const responsibleDropdownRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  // Non-admin roles (including gerente) can't pick "Lugar" freely — lock it
+  // to their own branch, matching the branch-locking used elsewhere.
+  useEffect(() => {
+    if (!canChooseBranch && generalInfo.lugar !== effectiveBranch) {
+      setGeneralInfo({
+        ...generalInfo,
+        lugarOption: effectiveBranch,
+        lugar: effectiveBranch,
+        customLugar: '',
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canChooseBranch, effectiveBranch]);
 
   useEffect(() => {
     console.log("🔍 DEBUG: Fetching all users...");
@@ -199,19 +215,25 @@ const Step1GeneralInfo: React.FC<Step1Props> = ({ generalInfo, setGeneralInfo, t
         </div>
         <div>
           <label className="block mb-1 font-medium">Lugar</label>
-          <select
-            value={generalInfo.lugarOption || generalInfo.lugar || ''}
-            onChange={handleLugarChange}
-            className="w-full px-3 py-2 border rounded"
-            required
-          >
-            <option value="">Selecciona un lugar</option>
-            <option value="San Pedro">San Pedro</option>
-            <option value="Las Quintas">Las Quintas</option>
-            <option value="otro">Otro</option>
-          </select>
+          {canChooseBranch ? (
+            <select
+              value={generalInfo.lugarOption || generalInfo.lugar || ''}
+              onChange={handleLugarChange}
+              className="w-full px-3 py-2 border rounded"
+              required
+            >
+              <option value="">Selecciona un lugar</option>
+              <option value="San Pedro">San Pedro</option>
+              <option value="Las Quintas">Las Quintas</option>
+              <option value="otro">Otro</option>
+            </select>
+          ) : (
+            <p className="w-full px-3 py-2 border border-gray-200 rounded bg-gray-50 text-gray-600">
+              {effectiveBranch}
+            </p>
+          )}
         </div>
-        {generalInfo.lugarOption === 'otro' && (
+        {canChooseBranch && generalInfo.lugarOption === 'otro' && (
           <div>
             <label className="block mb-1 font-medium">Especifica el lugar</label>
             <input

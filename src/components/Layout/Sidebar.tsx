@@ -19,7 +19,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const { isAdmin, logout } = useAuth();
+  const { isManager, logout } = useAuth();
   const navigate = useNavigate();
 
   const navItems = [
@@ -57,19 +57,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       name: "Contratos",
       path: "/dashboard/contratos",
       icon: <ClipboardList size={20} />,
-      show: isAdmin,
+      show: isManager,
     },
     {
       name: "Incidencias",
       path: "/dashboard/incidencias",
       icon: <Clock size={20} />,
-      show: isAdmin,
+      show: isManager,
     },
     {
       name: "Usuarios",
       path: "/dashboard/usuarios",
       icon: <Users size={20} />,
-      show: isAdmin,
+      show: isManager,
     },
   ];
 

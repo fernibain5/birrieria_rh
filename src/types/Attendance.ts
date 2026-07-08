@@ -28,6 +28,13 @@ export interface SyncResult {
   syncedAt: string;
 }
 
+export interface LinkedUser {
+  id: string;
+  displayName: string | null;
+  restDay: string;
+  hireDate: string | null;
+}
+
 export interface AttendanceEmployee {
   id: number;
   restaurantId: number;
@@ -38,8 +45,12 @@ export interface AttendanceEmployee {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Admin-defined display order, shared across all Incidencias reports. */
+  sortOrder: number;
   /** Only present in the response right after creation — the device PIN. */
   passcode?: string;
+  /** The website account linked to this Hikvision employee, if any. */
+  linkedUser?: LinkedUser | null;
 }
 
 export interface AttendanceQuery {
@@ -65,4 +76,22 @@ export interface Restaurant {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface JustifiedAbsence {
+  id: number;
+  employeeId: number;
+  date: string; // YYYY-MM-DD
+  justifiedById: string | null;
+  createdAt: string;
+}
+
+export interface VacationRequest {
+  id: string;
+  userId: string;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  businessDays: number;
+  approvedById: string | null;
+  createdAt: string;
 }

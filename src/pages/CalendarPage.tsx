@@ -15,8 +15,8 @@ import { ChevronLeft, ChevronRight, Plus, Calendar } from "lucide-react";
 import EventModal from "../components/Calendar/EventModal";
 import BranchDropdown from "../components/ui/BranchDropdown";
 import { Event } from "../types/Event";
-import { UserBranch } from "../types/auth";
 import { useAuth } from "../contexts/AuthContext";
+import { useBranchLock } from "../hooks/useBranchLock";
 import {
   getEventsForUser,
   addEvent,
@@ -31,6 +31,7 @@ import {
 
 const CalendarPage: React.FC = () => {
   const { isAdmin, userProfile } = useAuth();
+  const { effectiveBranch: selectedBranch, canChooseBranch, setBranch: setSelectedBranch } = useBranchLock();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -40,9 +41,6 @@ const CalendarPage: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [showDayEventsModal, setShowDayEventsModal] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
-  const [selectedBranch, setSelectedBranch] = useState<UserBranch>(
-    (userProfile?.branch as UserBranch) ?? "San Pedro"
-  );
   const [visibleEventTypes, setVisibleEventTypes] = useState({
     holiday: true,
     custom: true,
@@ -243,10 +241,16 @@ const CalendarPage: React.FC = () => {
     <div className="card">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-3">
-          <BranchDropdown
-            selectedBranch={selectedBranch}
-            onBranchChange={setSelectedBranch}
-          />
+          {canChooseBranch ? (
+            <BranchDropdown
+              selectedBranch={selectedBranch}
+              onBranchChange={setSelectedBranch}
+            />
+          ) : (
+            <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-700">
+              {selectedBranch}
+            </div>
+          )}
           <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
             Calendario de Eventos
           </h1>

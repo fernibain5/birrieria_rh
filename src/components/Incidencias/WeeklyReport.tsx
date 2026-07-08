@@ -1,12 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getAllAttendance } from '../../services/attendanceApiService';
+import { getAllAttendance, getJustifiedAbsences } from '../../services/attendanceApiService';
+import { getAllEvents } from '../../services/eventService';
 import type { AttendanceRecord, AttendanceEmployee } from '../../types/Attendance';
 import { startOfWeek, endOfWeek, addDays } from '../../utils/weekUtils';
-
-/** Local calendar date as YYYY-MM-DD — same technique the old groupByDay used. */
-function localDateKey(date: Date): string {
-  return date.toLocaleDateString('en-CA');
-}
+import {
+  STATUS,
+  StatusKey,
+  localDateKey,
+  classifyDay,
+  groupRecordsByEmployeeDay,
+} from '../../utils/attendanceStatus';
+import { useAuth } from '../../contexts/AuthContext';
+import JustifyAbsenceModal from './JustifyAbsenceModal';
 
 function formatTime(iso: string): string {
   return new Date(iso)
@@ -33,6 +38,8 @@ interface WeeklyReportProps {
   onWeekChange: (weekStart: Date) => void;
   /** Bump to force a refetch (e.g. after a device sync). */
   refreshKey?: number;
+  /** Branch name used to match this restaurant's "holiday" calendar events. */
+  branchName?: string | null;
 }
 
 const WeeklyReport: React.FC<WeeklyReportProps> = ({
@@ -41,11 +48,20 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
   weekStart,
   onWeekChange,
   refreshKey = 0,
+  branchName = null,
 }) => {
+  const { isAdmin, isGerente } = useAuth();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [onlyWithRecords, setOnlyWithRecords] = useState(false);
+  const [holidayDates, setHolidayDates] = useState<Set<string>>(new Set());
+  const [justifiedDates, setJustifiedDates] = useState<Set<string>>(new Set());
+  const [justifyTarget, setJustifyTarget] = useState<{
+    employeeId: number;
+    employeeName: string;
+    date: string;
+  } | null>(null);
 
   const weekStartMs = weekStart.getTime();
 
@@ -77,63 +93,110 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
     };
   }, [restaurantId, weekStartMs, refreshKey]);
 
+  useEffect(() => {
+    let cancelled = false;
+    getAllEvents()
+      .then((events) => {
+        if (cancelled) return;
+        const dates = new Set<string>();
+        for (const event of events) {
+          if (event.type !== 'holiday') continue;
+          if (event.targetBranch && event.targetBranch !== branchName) continue;
+          dates.add(localDateKey(event.date));
+        }
+        setHolidayDates(dates);
+      })
+      .catch(() => {
+        // non-critical; grid falls back to no holiday-awareness
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [branchName]);
+
+  useEffect(() => {
+    const start = new Date(weekStartMs);
+    let cancelled = false;
+    getJustifiedAbsences(restaurantId, {
+      startDate: localDateKey(start),
+      endDate: localDateKey(endOfWeek(start)),
+    })
+      .then((list) => {
+        if (cancelled) return;
+        setJustifiedDates(new Set(list.map((j) => `${j.employeeId}:${j.date}`)));
+      })
+      .catch(() => {
+        // non-critical; cells fall back to unjustified until reloaded
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId, weekStartMs, refreshKey]);
+
   const weekDays = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
     [weekStartMs], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  // employeeId → local date (YYYY-MM-DD) → punches of that day, sorted
-  const byEmployeeDay = useMemo(() => {
-    const map = new Map<number, Map<string, AttendanceRecord[]>>();
-    for (const r of records) {
-      const dateKey = localDateKey(new Date(r.checkedAt));
-      let days = map.get(r.employeeId);
-      if (!days) map.set(r.employeeId, (days = new Map()));
-      let recs = days.get(dateKey);
-      if (!recs) days.set(dateKey, (recs = []));
-      recs.push(r);
-    }
-    for (const days of map.values()) {
-      for (const recs of days.values()) {
-        recs.sort((a, b) => new Date(a.checkedAt).getTime() - new Date(b.checkedAt).getTime());
-      }
-    }
-    return map;
-  }, [records]);
+  const byEmployeeDay = useMemo(() => groupRecordsByEmployeeDay(records), [records]);
+
+  const displayName = (emp: AttendanceEmployee) => emp.linkedUser?.displayName || emp.name;
 
   const rows = useMemo(() => {
     const active = employees
-      .filter((e) => e.isActive)
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .filter((e) => e.isActive && e.linkedUser)
+      .sort((a, b) => a.sortOrder - b.sortOrder || displayName(a).localeCompare(displayName(b)));
     if (!onlyWithRecords) return active;
     return active.filter((e) => (byEmployeeDay.get(e.id)?.size ?? 0) > 0);
   }, [employees, byEmployeeDay, onlyWithRecords]);
 
   const todayKey = localDateKey(new Date());
 
-  function renderDayCell(employeeId: number, day: Date) {
+  function renderDayCell(emp: AttendanceEmployee, day: Date) {
     const dateKey = localDateKey(day);
-    const recs = byEmployeeDay.get(employeeId)?.get(dateKey) ?? [];
+    const recs = byEmployeeDay.get(emp.id)?.get(dateKey) ?? [];
+    const timeRange =
+      recs.length === 1
+        ? formatTime(recs[0].checkedAt)
+        : recs.length > 1
+          ? `${formatTime(recs[0].checkedAt)} - ${formatTime(recs[recs.length - 1].checkedAt)}`
+          : '';
 
-    if (recs.length === 0) {
-      // A day that hasn't happened yet is not an absence
-      if (dateKey > todayKey) {
-        return <td key={dateKey} className="py-2 px-2 text-center bg-gray-50" />;
-      }
-      return <td key={dateKey} className="py-2 px-2 text-center bg-red-100" />;
+    const status = classifyDay({
+      recs,
+      dateKey,
+      todayKey,
+      isHoliday: holidayDates.has(dateKey),
+      restDayName: emp.linkedUser?.restDay,
+      jsDay: day.getDay(),
+      isJustified: justifiedDates.has(`${emp.id}:${dateKey}`),
+    });
+
+    if (status === 'future') {
+      return <td key={dateKey} className="py-2 px-2 text-center bg-gray-50" />;
     }
 
-    if (recs.length === 1) {
-      return (
-        <td key={dateKey} className="py-2 px-2 text-center bg-orange-100 text-orange-800 whitespace-nowrap">
-          {formatTime(recs[0].checkedAt)}
-        </td>
-      );
-    }
+    const clickable = (isAdmin || isGerente) && status === 'faltaInjustificada';
+    const { className } = STATUS[status];
 
     return (
-      <td key={dateKey} className="py-2 px-2 text-center text-gray-700 whitespace-nowrap">
-        {formatTime(recs[0].checkedAt)} - {formatTime(recs[recs.length - 1].checkedAt)}
+      <td
+        key={dateKey}
+        className={`py-2 px-2 text-center whitespace-nowrap ${className} ${
+          clickable ? 'cursor-pointer hover:ring-2 hover:ring-red-400' : ''
+        }`}
+        onClick={
+          clickable
+            ? () =>
+                setJustifyTarget({
+                  employeeId: emp.id,
+                  employeeName: displayName(emp),
+                  date: dateKey,
+                })
+            : undefined
+        }
+      >
+        {timeRange}
       </td>
     );
   }
@@ -163,6 +226,17 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-2 mb-4 text-xs text-gray-600">
+        {(Object.keys(STATUS) as StatusKey[]).map((key) => (
+          <div key={key} className="flex items-center gap-1.5">
+            <span
+              className={`w-3 h-3 rounded-sm border border-gray-300 ${STATUS[key].className.split(' ')[0]}`}
+            />
+            <span>{STATUS[key].label}</span>
+          </div>
+        ))}
       </div>
 
       {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
@@ -201,15 +275,37 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
             ) : (
               rows.map((emp) => (
                 <tr key={emp.id} className="border-b border-gray-100">
-                  <td className="py-2 pr-4 font-medium text-gray-800 whitespace-nowrap">{emp.name}</td>
-                  <td className="py-2 pr-4 text-gray-400 text-center">—</td>
-                  {weekDays.map((day) => renderDayCell(emp.id, day))}
+                  <td className="py-2 pr-4 font-medium text-gray-800 whitespace-nowrap">
+                    {displayName(emp)}
+                  </td>
+                  <td className="py-2 pr-4 text-gray-500 text-center whitespace-nowrap">
+                    {emp.linkedUser?.restDay ?? '—'}
+                  </td>
+                  {weekDays.map((day) => renderDayCell(emp, day))}
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {justifyTarget && (
+        <JustifyAbsenceModal
+          restaurantId={restaurantId}
+          employeeId={justifyTarget.employeeId}
+          employeeName={justifyTarget.employeeName}
+          date={justifyTarget.date}
+          onClose={() => setJustifyTarget(null)}
+          onConfirmed={() => {
+            setJustifiedDates((prev) => {
+              const next = new Set(prev);
+              next.add(`${justifyTarget.employeeId}:${justifyTarget.date}`);
+              return next;
+            });
+            setJustifyTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 };

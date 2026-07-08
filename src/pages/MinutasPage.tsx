@@ -30,7 +30,7 @@ const toAttendanceInfo = (generalInfo: Partial<MinutaGeneralInfo>): MinutaGenera
 });
 
 const MinutasPage: React.FC = () => {
-  const { userProfile } = useAuth();
+  const { userProfile, isAdmin } = useAuth();
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -80,8 +80,13 @@ const MinutasPage: React.FC = () => {
       const savedAttendees = buildAttendeeSnapshot();
       const savedGeneralInfo = toAttendanceInfo(generalInfo);
 
-      const branch = savedGeneralInfo.lugar === 'San Pedro' || savedGeneralInfo.lugar === 'Las Quintas'
-        ? savedGeneralInfo.lugar
+      // Non-admin callers (gerente included) are always pinned to their own
+      // branch — the backend enforces this too, this just keeps the client
+      // consistent instead of momentarily showing a mismatched value.
+      const branch = isAdmin
+        ? (savedGeneralInfo.lugar === 'San Pedro' || savedGeneralInfo.lugar === 'Las Quintas'
+          ? savedGeneralInfo.lugar
+          : userProfile.branch)
         : userProfile.branch;
 
       await createMinuta({

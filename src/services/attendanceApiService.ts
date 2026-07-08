@@ -6,6 +6,7 @@ import {
   AttendanceQuery,
   CreateEmployeeData,
   Restaurant,
+  JustifiedAbsence,
 } from '../types/Attendance';
 
 const BASE = import.meta.env.VITE_API_URL as string;
@@ -25,11 +26,11 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
+  const body = await res.text();
   if (!res.ok) {
-    const body = await res.text();
     throw new Error(`API error ${res.status}: ${body}`);
   }
-  return res.json() as Promise<T>;
+  return (body ? JSON.parse(body) : undefined) as T;
 }
 
 // ─── Restaurants ─────────────────────────────────────────────────────────────
@@ -78,32 +79,6 @@ export async function syncAttendance(restaurantId: number): Promise<SyncResult> 
   return apiFetch<SyncResult>(`/restaurants/${restaurantId}/attendance/sync`);
 }
 
-export async function downloadAttendanceCsv(
-  restaurantId: number,
-  query: Omit<AttendanceQuery, 'page' | 'limit'>,
-): Promise<void> {
-  const qs = buildQuery({
-    startDate: query.startDate,
-    endDate: query.endDate,
-    employeeId: query.employeeId,
-  });
-
-  const res = await fetch(
-    `${BASE}/restaurants/${restaurantId}/attendance/download${qs}`,
-  );
-  if (!res.ok) throw new Error(`CSV download failed: ${res.status}`);
-
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `asistencia_${new Date().toISOString().split('T')[0]}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
 // ─── Employees ───────────────────────────────────────────────────────────────
 
 export async function getEmployees(restaurantId: number): Promise<AttendanceEmployee[]> {
@@ -137,5 +112,36 @@ export async function deleteEmployee(
 ): Promise<AttendanceEmployee> {
   return apiFetch<AttendanceEmployee>(`/restaurants/${restaurantId}/employees/${id}`, {
     method: 'DELETE',
+  });
+}
+
+export async function reorderEmployees(restaurantId: number, ids: number[]): Promise<void> {
+  await apiFetch<void>(`/restaurants/${restaurantId}/employees/reorder`, {
+    method: 'PATCH',
+    body: JSON.stringify({ ids }),
+  });
+}
+
+// ─── Justified absences ─────────────────────────────────────────────────────
+
+export async function getJustifiedAbsences(
+  restaurantId: number,
+  query: { startDate?: string; endDate?: string; employeeId?: number },
+): Promise<JustifiedAbsence[]> {
+  const qs = buildQuery({
+    startDate: query.startDate,
+    endDate: query.endDate,
+    employeeId: query.employeeId,
+  });
+  return apiFetch<JustifiedAbsence[]>(`/restaurants/${restaurantId}/attendance/justified${qs}`);
+}
+
+export async function justifyAbsence(
+  restaurantId: number,
+  data: { employeeId: number; date: string; justifiedById?: string },
+): Promise<JustifiedAbsence> {
+  return apiFetch<JustifiedAbsence>(`/restaurants/${restaurantId}/attendance/justify`, {
+    method: 'POST',
+    body: JSON.stringify(data),
   });
 }

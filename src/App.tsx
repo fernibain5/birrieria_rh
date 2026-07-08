@@ -40,13 +40,20 @@ function App() {
             <Route path="historial-minutas" element={<HistorialMinutasPage />} />
             <Route path="recursos" element={<RecursosPage />} />
             <Route path="reglamento" element={<ReglamentoPage />} />
-            <Route path="contratos" element={<ContratosPage />} />
+            <Route
+              path="contratos"
+              element={
+                <ProtectedRoute managerOnly>
+                  <ContratosPage />
+                </ProtectedRoute>
+              }
+            />
 
-            {/* Admin only routes */}
+            {/* Admin + gerente routes */}
             <Route
               path="usuarios"
               element={
-                <ProtectedRoute adminOnly>
+                <ProtectedRoute managerOnly>
                   <UsuariosPage />
                 </ProtectedRoute>
               }
@@ -54,7 +61,7 @@ function App() {
             <Route
               path="usuarios/:uid"
               element={
-                <ProtectedRoute adminOnly>
+                <ProtectedRoute managerOnly>
                   <UsuarioDetailPage />
                 </ProtectedRoute>
               }
@@ -62,7 +69,7 @@ function App() {
             <Route
               path="incidencias"
               element={
-                <ProtectedRoute adminOnly>
+                <ProtectedRoute managerOnly>
                   <IncidenciasPage />
                 </ProtectedRoute>
               }

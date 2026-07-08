@@ -6,6 +6,7 @@ import {
   Building,
   Cake,
   Calendar,
+  CalendarDays,
   Clock,
   FolderOpen,
   Link2,
@@ -21,14 +22,15 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useRoles } from "../hooks/useRoles";
-import { changeUserPassword, getUserById, linkEmployee, updateUser } from "../services/userService";
+import { useBranchLock } from "../hooks/useBranchLock";
+import { changeUserPassword, getAllUsers, getUserById, linkEmployee, updateUser } from "../services/userService";
 import {
   deleteUserDocument,
   getUserDocuments,
   uploadUserDocument,
 } from "../services/userDocumentService";
 import { getEmployees, getRestaurants } from "../services/attendanceApiService";
-import { UserProfile, UserBranch } from "../types/auth";
+import { UserProfile, UserBranch, DIAS_DESCANSO } from "../types/auth";
 import { UserDocument } from "../types/userDocument";
 import { AttendanceEmployee } from "../types/Attendance";
 import { FilePreview, formatFileSize, getFileIcon } from "../components/FilePreview";
@@ -128,8 +130,10 @@ const UsuarioDetailPage: React.FC = () => {
   const { uid } = useParams<{ uid: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, isAdmin, isGerente, userProfile } = useAuth();
   const { roles } = useRoles();
+  const { canChooseBranch } = useBranchLock();
+  const roleOptions = roles.filter((r) => isAdmin || (r.value !== "admin" && r.value !== "gerente"));
 
   const seedUser = (location.state as { user?: UserProfile } | null)?.user;
 
@@ -153,6 +157,7 @@ const UsuarioDetailPage: React.FC = () => {
   const [linkingEmployee, setLinkingEmployee] = useState(false);
   const [linkError, setLinkError] = useState("");
   const [linkSuccess, setLinkSuccess] = useState("");
+  const [linkedElsewhereIds, setLinkedElsewhereIds] = useState<Set<number>>(new Set());
 
   const [documents, setDocuments] = useState<UserDocument[]>([]);
   const [loadingDocuments, setLoadingDocuments] = useState(true);
@@ -212,6 +217,27 @@ const UsuarioDetailPage: React.FC = () => {
     setSelectedEmployeeId(user?.employeeId ? String(user.employeeId) : "");
   }, [user?.employeeId]);
 
+  const loadLinkedElsewhere = async () => {
+    if (!uid) return;
+    try {
+      const allUsers = await getAllUsers();
+      const taken = new Set(
+        allUsers
+          .filter((u) => u.uid !== uid && u.employeeId != null)
+          .map((u) => u.employeeId as number)
+      );
+      setLinkedElsewhereIds(taken);
+    } catch (error) {
+      console.error("Error loading linked employees:", error);
+      setLinkedElsewhereIds(new Set());
+    }
+  };
+
+  useEffect(() => {
+    loadLinkedElsewhere();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid]);
+
   useEffect(() => {
     if (!user?.branch) {
       setAvailableEmployees([]);
@@ -252,6 +278,7 @@ const UsuarioDetailPage: React.FC = () => {
       const updated = await linkEmployee(uid, employeeId);
       setUser(updated);
       setEditedUser(updated);
+      await loadLinkedElsewhere();
       setLinkSuccess(
         employeeId ? "Usuario vinculado con el empleado de Hikvision" : "Vínculo eliminado"
       );
@@ -298,6 +325,7 @@ const UsuarioDetailPage: React.FC = () => {
         phoneNumber: editedUser.phoneNumber,
         hireDate: editedUser.hireDate || undefined,
         birthDate: editedUser.birthDate || undefined,
+        restDay: editedUser.restDay,
       });
       setUser(updated);
       setEditedUser(updated);
@@ -403,6 +431,9 @@ const UsuarioDetailPage: React.FC = () => {
     }
   };
 
+  const selectableEmployees = availableEmployees.filter((emp) => !linkedElsewhereIds.has(emp.id));
+  const hiddenLinkedCount = availableEmployees.length - selectableEmployees.length;
+
   const BackButton = (
     <button
       type="button"
@@ -438,6 +469,19 @@ const UsuarioDetailPage: React.FC = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-secondary mx-auto"></div>
             <p className="mt-4 text-gray-600">Cargando usuario...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // A gerente can only view/edit users in their own branch. Admins have no
+  // branch (undefined) so this also blocks a gerente from opening an admin.
+  if (isGerente && user.branch !== userProfile?.branch) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Acceso Denegado</h2>
+          <p className="text-gray-600">No tienes permisos para acceder a esta sección.</p>
         </div>
       </div>
     );
@@ -520,7 +564,7 @@ const UsuarioDetailPage: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
                 disabled={savingProfile}
               >
-                {roles.map((role) => (
+                {roleOptions.map((role) => (
                   <option key={role.value} value={role.value}>
                     {role.label}
                   </option>
@@ -534,20 +578,26 @@ const UsuarioDetailPage: React.FC = () => {
                   <Building size={16} className="inline mr-2" />
                   Sucursal
                 </label>
-                <select
-                  id="branch"
-                  name="branch"
-                  value={editedUser.branch || "San Pedro"}
-                  onChange={handleProfileInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
-                  disabled={savingProfile}
-                >
-                  {ALL_BRANCHES.map((branch) => (
-                    <option key={branch.value} value={branch.value}>
-                      {branch.label}
-                    </option>
-                  ))}
-                </select>
+                {canChooseBranch ? (
+                  <select
+                    id="branch"
+                    name="branch"
+                    value={editedUser.branch || "San Pedro"}
+                    onChange={handleProfileInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
+                    disabled={savingProfile}
+                  >
+                    {ALL_BRANCHES.map((branch) => (
+                      <option key={branch.value} value={branch.value}>
+                        {branch.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-600">
+                    {editedUser.branch || "San Pedro"}
+                  </p>
+                )}
               </div>
             )}
 
@@ -598,6 +648,31 @@ const UsuarioDetailPage: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
                 disabled={savingProfile}
               />
+            </div>
+
+            <div>
+              <label htmlFor="restDay" className="block text-sm font-medium text-gray-700 mb-2">
+                <CalendarDays size={16} className="inline mr-2" />
+                Día de descanso
+              </label>
+              <select
+                id="restDay"
+                name="restDay"
+                value={editedUser.restDay || ""}
+                onChange={handleProfileInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
+                disabled={savingProfile}
+                required
+              >
+                <option value="" disabled>
+                  Selecciona un día
+                </option>
+                {DIAS_DESCANSO.map((dia) => (
+                  <option key={dia} value={dia}>
+                    {dia}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -715,7 +790,7 @@ const UsuarioDetailPage: React.FC = () => {
                 disabled={linkingEmployee || loadingEmployees || !user.branch}
               >
                 <option value="">Sin vincular</option>
-                {availableEmployees.map((emp) => (
+                {selectableEmployees.map((emp) => (
                   <option key={emp.id} value={emp.id}>
                     {emp.name} (ID Hikvision: {emp.hikvisionId})
                   </option>
@@ -724,6 +799,14 @@ const UsuarioDetailPage: React.FC = () => {
               {!user.branch && (
                 <p className="mt-2 text-sm text-gray-500">
                   Asigna una sucursal a este usuario para poder vincularlo con un empleado de Hikvision.
+                </p>
+              )}
+              {user.branch && hiddenLinkedCount > 0 && (
+                <p className="mt-2 text-sm text-gray-500">
+                  {hiddenLinkedCount} empleado{hiddenLinkedCount !== 1 ? "s" : ""} de esta
+                  sucursal ya {hiddenLinkedCount !== 1 ? "están vinculados" : "está vinculado"} a
+                  otro usuario y no aparece{hiddenLinkedCount !== 1 ? "n" : ""} en esta lista. Para
+                  reasignarlo, primero elimina su vínculo desde el usuario que lo tiene.
                 </p>
               )}
             </div>
