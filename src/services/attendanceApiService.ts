@@ -8,6 +8,7 @@ import {
   Restaurant,
   JustifiedAbsence,
 } from '../types/Attendance';
+import { getToken, clearToken } from './apiClient';
 
 const BASE = import.meta.env.VITE_API_URL as string;
 
@@ -22,10 +23,20 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getToken();
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options?.headers,
+    },
   });
+  if (res.status === 401) {
+    clearToken();
+    window.location.href = '/';
+    throw new Error('Unauthorized');
+  }
   const body = await res.text();
   if (!res.ok) {
     throw new Error(`API error ${res.status}: ${body}`);
