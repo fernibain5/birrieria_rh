@@ -86,8 +86,12 @@ export async function getAllAttendance(
   return records;
 }
 
-export async function syncAttendance(restaurantId: number): Promise<SyncResult> {
-  return apiFetch<SyncResult>(`/restaurants/${restaurantId}/attendance/sync`);
+export async function syncAttendance(
+  restaurantId: number,
+  deviceIp?: string,
+): Promise<SyncResult> {
+  const qs = buildQuery({ deviceIp });
+  return apiFetch<SyncResult>(`/restaurants/${restaurantId}/attendance/sync${qs}`);
 }
 
 // ─── Employees ───────────────────────────────────────────────────────────────

@@ -39,6 +39,7 @@ import MonthlyReport from '../components/Incidencias/MonthlyReport';
 import RangeReport from '../components/Incidencias/RangeReport';
 import AnnualReport from '../components/Incidencias/AnnualReport';
 import VacationsReport from '../components/Incidencias/VacationsReport';
+import ManualSyncModal from '../components/Incidencias/ManualSyncModal';
 import { startOfWeek } from '../utils/weekUtils';
 
 const EMPTY_FORM: CreateEmployeeData = { hikvisionId: '', name: '', department: '', email: '' };
@@ -136,6 +137,7 @@ const IncidenciasPage: React.FC = () => {
   // Sync state
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [manualSyncOpen, setManualSyncOpen] = useState(false);
 
   // Employees panel
   const [employees, setEmployees] = useState<AttendanceEmployee[]>([]);
@@ -196,12 +198,12 @@ const IncidenciasPage: React.FC = () => {
   }, [loadEmployees]);
 
   // ─── Handlers ────────────────────────────────────────────────────────────
-  async function handleSync() {
+  async function handleSync(deviceIp?: string) {
     if (!restaurantId || syncing) return;
     setSyncing(true);
     setSyncResult(null);
     try {
-      const result = await syncAttendance(restaurantId);
+      const result = await syncAttendance(restaurantId, deviceIp);
       setSyncResult(result);
       if (result.status === 'success') {
         setReportRefreshKey((k) => k + 1);
@@ -415,11 +417,19 @@ const IncidenciasPage: React.FC = () => {
           <div className="flex gap-2">
             <button
               className="btn btn-primary flex items-center gap-2"
-              onClick={handleSync}
+              onClick={() => handleSync()}
               disabled={syncing}
             >
               <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
               {syncing ? 'Sincronizando...' : 'Sincronizar'}
+            </button>
+            <button
+              className="btn border border-brand-primary text-brand-primary hover:bg-gray-50 flex items-center gap-2"
+              onClick={() => setManualSyncOpen(true)}
+              disabled={syncing}
+            >
+              <RefreshCw size={16} />
+              Sincronizar Manual
             </button>
           </div>
         </div>
@@ -660,6 +670,18 @@ const IncidenciasPage: React.FC = () => {
             </table>
           </div>
         </div>
+      )}
+
+      {/* ── Manual sync modal ── */}
+      {manualSyncOpen && (
+        <ManualSyncModal
+          defaultAddress={restaurants.find((r) => r.id === restaurantId)?.hikvisionIp || undefined}
+          onClose={() => setManualSyncOpen(false)}
+          onConfirm={(address) => {
+            setManualSyncOpen(false);
+            handleSync(address);
+          }}
+        />
       )}
     </div>
   );
