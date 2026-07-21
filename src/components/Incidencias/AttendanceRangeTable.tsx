@@ -3,7 +3,12 @@ import { eachDayOfInterval } from 'date-fns';
 import { getAllAttendance, getJustifiedAbsences } from '../../services/attendanceApiService';
 import { getAllEvents } from '../../services/eventService';
 import type { AttendanceEmployee } from '../../types/Attendance';
-import { localDateKey, classifyDay, groupRecordsByEmployeeDay } from '../../utils/attendanceStatus';
+import {
+  localDateKey,
+  classifyDay,
+  getBranchSchedule,
+  groupRecordsByEmployeeDay,
+} from '../../utils/attendanceStatus';
 
 interface RangeCounters {
   retardos: number;
@@ -121,6 +126,8 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
 
   const byEmployeeDay = useMemo(() => groupRecordsByEmployeeDay(records), [records]);
 
+  const schedule = useMemo(() => getBranchSchedule(branchName), [branchName]);
+
   const displayName = (emp: AttendanceEmployee) => emp.linkedUser?.displayName || emp.name;
 
   const daysInRange = useMemo(
@@ -148,9 +155,10 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
           dateKey,
           todayKey,
           isHoliday: false,
-          restDayName: emp.linkedUser?.restDay,
+          restDayNames: emp.linkedUser?.restDays,
           jsDay: day.getDay(),
           isJustified: justifiedDates.has(`${emp.id}:${dateKey}`),
+          schedule,
         });
 
         switch (status) {
@@ -179,7 +187,7 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
       }
       return { emp, counters };
     });
-  }, [employees, daysInRange, byEmployeeDay, holidayDates, justifiedDates, todayKey]);
+  }, [employees, daysInRange, byEmployeeDay, holidayDates, justifiedDates, todayKey, schedule]);
 
   return (
     <>

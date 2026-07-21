@@ -10,13 +10,38 @@ export function minutesSinceMidnight(iso: string): number {
 }
 
 // ─── Attendance statuses ─────────────────────────────────────────────────────
-// Working hours: 7:00am–3:30pm. "Descanso" is assigned when the day matches
-// the linked user's restDay. "Vacaciones" has no data source yet — it's
-// shown in the legend but never assigned by classifyDay.
+// Each branch has its own shift start / retardo cutoff, but shares the same
+// shift end. "Descanso" is assigned when the day matches one of the linked
+// user's restDays. "Vacaciones" has no data source yet — it's shown in the
+// legend but never assigned by classifyDay.
 
-export const SHIFT_START = 7 * 60; // 7:00am
-export const LATE_THRESHOLD = 7 * 60 + 30; // 7:30am
-export const SHIFT_END = 15 * 60 + 30; // 3:30pm
+export interface BranchSchedule {
+  shiftStart: number; // on time through this minute-of-day (inclusive)
+  lateThreshold: number; // retardo through this minute-of-day (inclusive); later is falta
+  shiftEnd: number; // checkout before this minute-of-day is horarioIncompleto
+}
+
+const SAN_PEDRO_SCHEDULE: BranchSchedule = {
+  shiftStart: 7 * 60, // 7:00am
+  lateThreshold: 7 * 60 + 30, // 7:30am
+  shiftEnd: 15 * 60, // 3:00pm
+};
+
+const LAS_QUINTAS_SCHEDULE: BranchSchedule = {
+  shiftStart: 7 * 60 + 30, // 7:30am
+  lateThreshold: 7 * 60 + 45, // 7:45am
+  shiftEnd: 15 * 60, // 3:00pm
+};
+
+const BRANCH_SCHEDULES: Record<string, BranchSchedule> = {
+  'San Pedro': SAN_PEDRO_SCHEDULE,
+  'Las Quintas': LAS_QUINTAS_SCHEDULE,
+};
+
+/** Falls back to the San Pedro schedule if branchName is missing/unrecognized. */
+export function getBranchSchedule(branchName: string | null | undefined): BranchSchedule {
+  return (branchName && BRANCH_SCHEDULES[branchName]) || SAN_PEDRO_SCHEDULE;
+}
 
 export type StatusKey =
   | 'asistencia'
@@ -54,11 +79,12 @@ export function classifyDay(params: {
   dateKey: string;
   todayKey: string;
   isHoliday: boolean;
-  restDayName: string | null | undefined;
+  restDayNames: string[] | null | undefined;
   jsDay: number; // Date#getDay()
   isJustified: boolean;
+  schedule: BranchSchedule;
 }): StatusKey | 'future' {
-  const { recs, dateKey, todayKey, isHoliday, restDayName, jsDay, isJustified } = params;
+  const { recs, dateKey, todayKey, isHoliday, restDayNames, jsDay, isJustified, schedule } = params;
 
   if (isHoliday) {
     return recs.length > 0 ? 'diaInhabilLaborado' : 'diaInhabilNoLaborado';
@@ -66,22 +92,22 @@ export function classifyDay(params: {
   if (recs.length === 0) {
     // A day that hasn't happened yet is not an absence
     if (dateKey > todayKey) return 'future';
-    // The employee's scheduled rest day is not an absence either
-    if (restDayName && DIA_BY_JS_DAY[jsDay] === restDayName) return 'descanso';
+    // One of the employee's scheduled rest days is not an absence either
+    if (restDayNames?.includes(DIA_BY_JS_DAY[jsDay])) return 'descanso';
     return isJustified ? 'faltaJustificada' : 'faltaInjustificada';
   }
 
   const firstMinutes = minutesSinceMidnight(recs[0].checkedAt);
   const lastMinutes = minutesSinceMidnight(recs[recs.length - 1].checkedAt);
 
-  if (firstMinutes > LATE_THRESHOLD) {
+  if (firstMinutes > schedule.lateThreshold) {
     return isJustified ? 'faltaJustificada' : 'faltaInjustificada';
   }
-  if (firstMinutes > SHIFT_START) {
-    // Between 7:01am and 7:30am (inclusive of LATE_THRESHOLD, checked above)
+  if (firstMinutes > schedule.shiftStart) {
+    // Between shiftStart and lateThreshold (exclusive/inclusive, checked above)
     return 'retardo';
   }
-  if (lastMinutes < SHIFT_END) {
+  if (lastMinutes < schedule.shiftEnd) {
     return 'horarioIncompleto';
   }
   return 'asistencia';

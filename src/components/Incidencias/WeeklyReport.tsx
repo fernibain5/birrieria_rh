@@ -8,6 +8,7 @@ import {
   StatusKey,
   localDateKey,
   classifyDay,
+  getBranchSchedule,
   groupRecordsByEmployeeDay,
 } from '../../utils/attendanceStatus';
 import { useAuth } from '../../contexts/AuthContext';
@@ -140,6 +141,8 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
 
   const byEmployeeDay = useMemo(() => groupRecordsByEmployeeDay(records), [records]);
 
+  const schedule = useMemo(() => getBranchSchedule(branchName), [branchName]);
+
   const displayName = (emp: AttendanceEmployee) => emp.linkedUser?.displayName || emp.name;
 
   const rows = useMemo(() => {
@@ -167,9 +170,10 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
       dateKey,
       todayKey,
       isHoliday: holidayDates.has(dateKey),
-      restDayName: emp.linkedUser?.restDay,
+      restDayNames: emp.linkedUser?.restDays,
       jsDay: day.getDay(),
       isJustified: justifiedDates.has(`${emp.id}:${dateKey}`),
+      schedule,
     });
 
     if (status === 'future') {
@@ -279,7 +283,7 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
                     {displayName(emp)}
                   </td>
                   <td className="py-2 pr-4 text-gray-500 text-center whitespace-nowrap">
-                    {emp.linkedUser?.restDay ?? '—'}
+                    {emp.linkedUser?.restDays?.length ? emp.linkedUser.restDays.join(', ') : '—'}
                   </td>
                   {weekDays.map((day) => renderDayCell(emp, day))}
                 </tr>

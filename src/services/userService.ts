@@ -10,7 +10,7 @@ export interface CreateUserData {
   phoneNumber: string;
   hireDate?: string;
   birthDate?: string;
-  restDay: RestDay | '';
+  restDays: RestDay[];
 }
 
 export const createUser = async (userData: CreateUserData): Promise<string> => {

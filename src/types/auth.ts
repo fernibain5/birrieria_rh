@@ -34,7 +34,7 @@ export interface UserProfile {
   phoneNumber?: string;
   hireDate?: string;
   birthDate?: string;
-  restDay?: RestDay;
+  restDays?: RestDay[];
   allFiles?: string[];
   employeeId?: number;
   employee?: LinkedEmployee;

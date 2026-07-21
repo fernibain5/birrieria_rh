@@ -30,12 +30,13 @@ import {
   uploadUserDocument,
 } from "../services/userDocumentService";
 import { getEmployees, getRestaurants } from "../services/attendanceApiService";
-import { UserProfile, UserBranch, DIAS_DESCANSO } from "../types/auth";
+import { UserProfile, UserBranch } from "../types/auth";
 import { UserDocument } from "../types/userDocument";
 import { AttendanceEmployee } from "../types/Attendance";
 import { FilePreview, formatFileSize, getFileIcon } from "../components/FilePreview";
 import { downloadFile } from "../utils/downloadFile";
 import { calculateSeniority } from "../utils/seniority";
+import RestDaysCheckboxGroup from "../components/ui/RestDaysCheckboxGroup";
 
 const ALL_BRANCHES: { value: UserBranch; label: string }[] = [
   { value: "San Pedro", label: "San Pedro" },
@@ -325,7 +326,7 @@ const UsuarioDetailPage: React.FC = () => {
         phoneNumber: editedUser.phoneNumber,
         hireDate: editedUser.hireDate || undefined,
         birthDate: editedUser.birthDate || undefined,
-        restDay: editedUser.restDay,
+        restDays: editedUser.restDays ?? [],
       });
       setUser(updated);
       setEditedUser(updated);
@@ -651,28 +652,17 @@ const UsuarioDetailPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="restDay" className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 <CalendarDays size={16} className="inline mr-2" />
-                Día de descanso
+                Días de descanso
               </label>
-              <select
-                id="restDay"
-                name="restDay"
-                value={editedUser.restDay || ""}
-                onChange={handleProfileInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
+              <RestDaysCheckboxGroup
+                value={editedUser.restDays ?? []}
+                onChange={(restDays) =>
+                  setEditedUser((prev) => (prev ? { ...prev, restDays } : prev))
+                }
                 disabled={savingProfile}
-                required
-              >
-                <option value="" disabled>
-                  Selecciona un día
-                </option>
-                {DIAS_DESCANSO.map((dia) => (
-                  <option key={dia} value={dia}>
-                    {dia}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div>

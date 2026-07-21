@@ -31,7 +31,7 @@ export interface SyncResult {
 export interface LinkedUser {
   id: string;
   displayName: string | null;
-  restDay: string;
+  restDays: string[];
   hireDate: string | null;
 }
 

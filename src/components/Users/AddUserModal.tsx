@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { X, User, Mail, Lock, Building, UserCheck, Phone, Calendar, Cake, CalendarDays } from "lucide-react";
-import { DIAS_DESCANSO } from "../../types/auth";
 import { createUser, CreateUserData } from "../../services/userService";
 import { useRoles } from "../../hooks/useRoles";
 import { useAuth } from "../../contexts/AuthContext";
 import { useBranchLock } from "../../hooks/useBranchLock";
+import RestDaysCheckboxGroup from "../ui/RestDaysCheckboxGroup";
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -29,7 +29,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
     phoneNumber: "",
     hireDate: "",
     birthDate: "",
-    restDay: "",
+    restDays: [],
   });
   const [grantAdmin, setGrantAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -63,7 +63,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
       !formData.password ||
       !formData.displayName ||
       !formData.phoneNumber ||
-      !formData.restDay
+      formData.restDays.length === 0
     ) {
       setError("Todos los campos son obligatorios");
       return;
@@ -101,7 +101,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
         phoneNumber: "",
         hireDate: "",
         birthDate: "",
-        restDay: "",
+        restDays: [],
       });
       setGrantAdmin(false);
 
@@ -305,33 +305,17 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
             </div>
           </div>
 
-          {/* Rest day */}
+          {/* Rest days */}
           <div>
-            <label
-              htmlFor="restDay"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               <CalendarDays size={16} className="inline mr-2" />
-              Día de descanso
+              Días de descanso
             </label>
-            <select
-              id="restDay"
-              name="restDay"
-              value={formData.restDay}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
+            <RestDaysCheckboxGroup
+              value={formData.restDays}
+              onChange={(restDays) => setFormData((prev) => ({ ...prev, restDays }))}
               disabled={loading}
-              required
-            >
-              <option value="" disabled>
-                Selecciona un día
-              </option>
-              {DIAS_DESCANSO.map((dia) => (
-                <option key={dia} value={dia}>
-                  {dia}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Admin checkbox */}
