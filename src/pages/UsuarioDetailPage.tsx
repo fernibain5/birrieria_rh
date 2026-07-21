@@ -658,9 +658,10 @@ const UsuarioDetailPage: React.FC = () => {
               </label>
               <RestDaysCheckboxGroup
                 value={editedUser.restDays ?? []}
-                onChange={(restDays) =>
-                  setEditedUser((prev) => (prev ? { ...prev, restDays } : prev))
-                }
+                onChange={(restDays) => {
+                  setEditedUser((prev) => (prev ? { ...prev, restDays } : prev));
+                  setIsEditingProfile(true);
+                }}
                 disabled={savingProfile}
               />
             </div>
