@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { startOfMonth, endOfMonth, startOfYear } from 'date-fns';
 import {
   closestCenter,
@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { RefreshCw, Plus, Pencil, Trash2, X, GripVertical } from 'lucide-react';
+import { RefreshCw, Plus, Pencil, Trash2, X, GripVertical, Search } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   syncAttendance,
@@ -28,6 +28,9 @@ import {
   deleteEmployee,
   reorderEmployees,
 } from '../services/attendanceApiService';
+import { getAllUsers } from '../services/userService';
+import { useRoles } from '../hooks/useRoles';
+import type { UserProfile } from '../types/auth';
 import type {
   SyncResult,
   AttendanceEmployee,
@@ -154,6 +157,12 @@ const IncidenciasPage: React.FC = () => {
     'weekly' | 'employees' | 'monthly' | 'range' | 'annual' | 'vacaciones'
   >('weekly');
 
+  // Name search + role filter shared across all report tabs (not the Empleados tab)
+  const [nameFilter, setNameFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const { roles } = useRoles();
+
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -196,6 +205,35 @@ const IncidenciasPage: React.FC = () => {
   useEffect(() => {
     loadEmployees();
   }, [loadEmployees]);
+
+  // ─── Load all website users once, to resolve each linked employee's role ──
+  useEffect(() => {
+    getAllUsers()
+      .then(setAllUsers)
+      .catch(() => {
+        // non-critical; role filter will just show no matches
+      });
+  }, []);
+
+  const uidToRole = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const user of allUsers) map.set(user.uid, user.role);
+    return map;
+  }, [allUsers]);
+
+  const visibleEmployees = useMemo(() => {
+    const normalizedName = nameFilter.trim().toLowerCase();
+    return employees
+      .filter((emp) => {
+        if (!normalizedName) return true;
+        const name = emp.linkedUser?.displayName || emp.name;
+        return name.toLowerCase().includes(normalizedName);
+      })
+      .filter((emp) => {
+        if (!roleFilter) return true;
+        return uidToRole.get(emp.linkedUser?.id ?? '') === roleFilter;
+      });
+  }, [employees, nameFilter, roleFilter, uidToRole]);
 
   // ─── Handlers ────────────────────────────────────────────────────────────
   async function handleSync(deviceIp?: string) {
@@ -459,11 +497,41 @@ const IncidenciasPage: React.FC = () => {
         )}
       </div>
 
+      {/* ── Name search + role filter (all report tabs, not Empleados) ── */}
+      {activeTab !== 'employees' && (
+        <div className="card">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+                placeholder="Buscar empleado..."
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-secondary"
+              />
+            </div>
+            <select
+              className="input sm:w-56"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="">Todos los roles</option>
+              {roles.map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* ── Weekly Report ── */}
       {activeTab === 'weekly' && (
         <WeeklyReport
           restaurantId={restaurantId}
-          employees={employees}
+          employees={visibleEmployees}
           weekStart={weekStart}
           onWeekChange={setWeekStart}
           refreshKey={reportRefreshKey}
@@ -475,7 +543,7 @@ const IncidenciasPage: React.FC = () => {
       {isManager && activeTab === 'monthly' && (
         <MonthlyReport
           restaurantId={restaurantId}
-          employees={employees}
+          employees={visibleEmployees}
           monthStart={monthStart}
           onMonthChange={setMonthStart}
           refreshKey={reportRefreshKey}
@@ -487,7 +555,7 @@ const IncidenciasPage: React.FC = () => {
       {isManager && activeTab === 'range' && (
         <RangeReport
           restaurantId={restaurantId}
-          employees={employees}
+          employees={visibleEmployees}
           rangeStart={rangeStart}
           rangeEnd={rangeEnd}
           onRangeChange={(start, end) => {
@@ -503,7 +571,7 @@ const IncidenciasPage: React.FC = () => {
       {isManager && activeTab === 'annual' && (
         <AnnualReport
           restaurantId={restaurantId}
-          employees={employees}
+          employees={visibleEmployees}
           yearStart={yearStart}
           onYearChange={setYearStart}
           refreshKey={reportRefreshKey}
@@ -515,7 +583,7 @@ const IncidenciasPage: React.FC = () => {
       {isManager && activeTab === 'vacaciones' && (
         <VacationsReport
           restaurantId={restaurantId}
-          employees={employees}
+          employees={visibleEmployees}
           refreshKey={reportRefreshKey}
         />
       )}
