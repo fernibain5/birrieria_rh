@@ -31,6 +31,7 @@ export interface UserProfile {
   role: UserRole;
   branch?: UserBranch;
   displayName?: string;
+  lastName?: string;
   phoneNumber?: string;
   hireDate?: string;
   birthDate?: string;

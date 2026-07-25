@@ -1,6 +1,7 @@
 import React from "react";
 import { Menu, Bell, User, Shield } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { formatFullName } from "../../utils/formatName";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -30,7 +31,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <div className="flex items-center space-x-3">
           <div className="text-right">
             <div className="text-sm font-medium text-white">
-              {userProfile?.displayName || userProfile?.email}
+              {formatFullName(userProfile?.displayName, userProfile?.lastName) || userProfile?.email}
             </div>
             <div className="flex items-center text-xs text-orange-50">
               {isAdmin && <Shield size={12} className="mr-1 text-brand-secondary" />}

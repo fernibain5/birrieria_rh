@@ -4,6 +4,7 @@ import type { AttendanceEmployee, VacationRequest } from '../../types/Attendance
 import { vacationDaysForSeniority, getAnniversaryWindow } from '../../utils/vacationUtils';
 import { localDateKey } from '../../utils/attendanceStatus';
 import { createVacationRequest } from '../../services/vacationService';
+import { formatFullName } from '../../utils/formatName';
 
 interface ApproveVacationModalProps {
   /** Linked employees that have a hireDate — the same eligibility as the table. */
@@ -118,7 +119,7 @@ const ApproveVacationModal: React.FC<ApproveVacationModalProps> = ({
               <option value="">Selecciona un empleado</option>
               {employees.map((emp) => (
                 <option key={emp.id} value={emp.id}>
-                  {emp.linkedUser?.displayName || emp.name}
+                  {formatFullName(emp.linkedUser?.displayName, emp.linkedUser?.lastName) || emp.name}
                 </option>
               ))}
             </select>

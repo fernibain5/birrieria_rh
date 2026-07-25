@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAllUsers } from '../../services/userService';
 import { UserProfile, UserRole } from '../../types/auth';
+import { formatFullName } from '../../utils/formatName';
 
 interface TopicDetail {
   topic: string;
@@ -112,7 +113,7 @@ const Step3TopicsDetails: React.FC<Step3Props> = ({ topics, setTopics, onSubmit 
                 ) : (
                   admins.map(user => (
                     <option key={user.uid} value={user.uid}>
-                      {user.displayName || user.email}
+                      {formatFullName(user.displayName, user.lastName) || user.email}
                     </option>
                   ))
                 )}

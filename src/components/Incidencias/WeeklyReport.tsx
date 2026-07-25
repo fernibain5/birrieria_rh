@@ -11,6 +11,7 @@ import {
   getBranchSchedule,
   groupRecordsByEmployeeDay,
 } from '../../utils/attendanceStatus';
+import { formatFullName } from '../../utils/formatName';
 import { useAuth } from '../../contexts/AuthContext';
 import JustifyAbsenceModal from './JustifyAbsenceModal';
 
@@ -143,7 +144,8 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
 
   const schedule = useMemo(() => getBranchSchedule(branchName), [branchName]);
 
-  const displayName = (emp: AttendanceEmployee) => emp.linkedUser?.displayName || emp.name;
+  const displayName = (emp: AttendanceEmployee) =>
+    formatFullName(emp.linkedUser?.displayName, emp.linkedUser?.lastName) || emp.name;
 
   const rows = useMemo(() => {
     const active = employees

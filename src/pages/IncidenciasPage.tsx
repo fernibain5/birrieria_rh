@@ -44,6 +44,7 @@ import AnnualReport from '../components/Incidencias/AnnualReport';
 import VacationsReport from '../components/Incidencias/VacationsReport';
 import ManualSyncModal from '../components/Incidencias/ManualSyncModal';
 import { startOfWeek } from '../utils/weekUtils';
+import { formatFullName } from '../utils/formatName';
 
 const EMPTY_FORM: CreateEmployeeData = { hikvisionId: '', name: '', department: '', email: '' };
 
@@ -226,7 +227,7 @@ const IncidenciasPage: React.FC = () => {
     return employees
       .filter((emp) => {
         if (!normalizedName) return true;
-        const name = emp.linkedUser?.displayName || emp.name;
+        const name = formatFullName(emp.linkedUser?.displayName, emp.linkedUser?.lastName) || emp.name;
         return name.toLowerCase().includes(normalizedName);
       })
       .filter((emp) => {

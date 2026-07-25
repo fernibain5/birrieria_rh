@@ -6,6 +6,7 @@ import { UserProfile } from "../types/auth";
 import Step1GeneralInfo from '../components/Minutas/Step1GeneralInfo';
 import Step2Attendance from '../components/Minutas/Step2Attendance';
 import { getAllUsers } from '../services/userService';
+import { formatFullName } from '../utils/formatName';
 
 interface AreaDetail {
   area: string;
@@ -16,8 +17,8 @@ interface AreaDetail {
   encargadoUids: string[];
 }
 
-const getUserLabel = (user: { displayName?: string; email?: string; uid: string }) =>
-  user.displayName || user.email || user.uid;
+const getUserLabel = (user: { displayName?: string; lastName?: string; email?: string; uid: string }) =>
+  formatFullName(user.displayName, user.lastName) || user.email || user.uid;
 
 const toAttendanceInfo = (generalInfo: Partial<MinutaGeneralInfo>): MinutaGeneralInfo => ({
   startTime: generalInfo.startTime || '',
@@ -65,7 +66,7 @@ const MinutasPage: React.FC = () => {
   const buildAttendeeSnapshot = (): MinutaAttendee[] =>
     attendees.map(attendee => ({
       uid: attendee.uid,
-      displayName: attendee.displayName || '',
+      displayName: formatFullName(attendee.displayName, attendee.lastName),
       email: attendee.email || '',
       area: attendee.role || '',
     }));
@@ -90,7 +91,7 @@ const MinutasPage: React.FC = () => {
         : userProfile.branch;
 
       await createMinuta({
-        supervisor: userProfile.displayName || userProfile.email,
+        supervisor: formatFullName(userProfile.displayName, userProfile.lastName) || userProfile.email,
         branch,
         role: userProfile.role,
         whatHappened: savedAreas.map(area => area.planteamiento).join('\n'),

@@ -1,4 +1,5 @@
 import { UserProfile } from '../types/auth';
+import { formatFullName } from '../utils/formatName';
 
 // WhatsApp Web API endpoint (you can replace this with Twilio or another service)
 const WHATSAPP_API_URL = 'https://api.whatsapp.com/send';
@@ -145,7 +146,7 @@ export const sendMinutaNotification = async (
       .filter(user => user.phoneNumber)
       .map(user => ({
         phoneNumber: user.phoneNumber!,
-        name: user.displayName || user.email
+        name: formatFullName(user.displayName, user.lastName) || user.email
       }));
 
     if (recipients.length === 0) {
@@ -189,7 +190,7 @@ export const logMinutaNotification = (
   console.log('📱 WhatsApp Notification Details:');
   console.log('Message:', message);
   console.log('Target Users:', targetUsers.map(user => ({
-    name: user.displayName || user.email,
+    name: formatFullName(user.displayName, user.lastName) || user.email,
     phone: user.phoneNumber ? `+52${user.phoneNumber}` : 'No phone',
     role: user.role,
     branch: user.branch

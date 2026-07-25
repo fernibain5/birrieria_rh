@@ -5,6 +5,7 @@ export interface CreateUserData {
   email: string;
   password: string;
   displayName: string;
+  lastName: string;
   role: string;
   branch: UserBranch | '';
   phoneNumber: string;

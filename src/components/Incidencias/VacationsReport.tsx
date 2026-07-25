@@ -4,6 +4,7 @@ import { getVacationRequests } from '../../services/vacationService';
 import type { AttendanceEmployee, VacationRequest } from '../../types/Attendance';
 import { vacationDaysForSeniority, getAnniversaryWindow } from '../../utils/vacationUtils';
 import { localDateKey } from '../../utils/attendanceStatus';
+import { formatFullName } from '../../utils/formatName';
 import ApproveVacationModal from './ApproveVacationModal';
 
 function formatDate(d: Date): string {
@@ -41,7 +42,8 @@ const VacationsReport: React.FC<VacationsReportProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId, refreshKey]);
 
-  const displayName = (emp: AttendanceEmployee) => emp.linkedUser?.displayName || emp.name;
+  const displayName = (emp: AttendanceEmployee) =>
+    formatFullName(emp.linkedUser?.displayName, emp.linkedUser?.lastName) || emp.name;
 
   // Same "linked users only" rule as the other Incidencias reports, sorted
   // by the same admin-defined sortOrder so every report agrees.

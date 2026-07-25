@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAllUsers } from '../../services/userService';
 import { UserProfile } from '../../types/auth';
+import { formatFullName } from '../../utils/formatName';
 
 interface Step2Props {
   attendees: UserProfile[];
@@ -29,9 +30,9 @@ const Step2Attendance: React.FC<Step2Props> = ({ attendees, setAttendees, onBack
     fetchUsers();
   }, []);
 
-  // Filter only by displayName (case-insensitive)
+  // Filter by full name (case-insensitive)
   const filteredUsers = allUsers.filter(user =>
-    user.displayName?.toLowerCase().includes(search.toLowerCase())
+    formatFullName(user.displayName, user.lastName).toLowerCase().includes(search.toLowerCase())
   );
 
   const toggleAttendance = (user: UserProfile) => {
@@ -97,7 +98,7 @@ const Step2Attendance: React.FC<Step2Props> = ({ attendees, setAttendees, onBack
                 className={`flex items-center justify-between py-2 px-3 rounded cursor-pointer transition-colors ${selected ? 'bg-brand-secondarySoft text-brand-primary font-semibold' : 'hover:bg-gray-100'}`}
                 style={{ marginBottom: '4px' }}
               >
-                <span>{user.displayName || user.email}</span>
+                <span>{formatFullName(user.displayName, user.lastName) || user.email}</span>
                 {selected && <span className="ml-2">✔️</span>}
               </li>
             );

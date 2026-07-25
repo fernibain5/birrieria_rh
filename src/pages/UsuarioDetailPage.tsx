@@ -36,6 +36,7 @@ import { AttendanceEmployee } from "../types/Attendance";
 import { FilePreview, formatFileSize, getFileIcon } from "../components/FilePreview";
 import { downloadFile } from "../utils/downloadFile";
 import { calculateSeniority } from "../utils/seniority";
+import { formatFullName } from "../utils/formatName";
 import RestDaysCheckboxGroup from "../components/ui/RestDaysCheckboxGroup";
 
 const ALL_BRANCHES: { value: UserBranch; label: string }[] = [
@@ -321,6 +322,7 @@ const UsuarioDetailPage: React.FC = () => {
       setProfileError("");
       const updated = await updateUser(uid, {
         displayName: editedUser.displayName,
+        lastName: editedUser.lastName,
         role: editedUser.role,
         branch: editedUser.role === "admin" ? "" : editedUser.branch,
         phoneNumber: editedUser.phoneNumber,
@@ -501,7 +503,7 @@ const UsuarioDetailPage: React.FC = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                {user.displayName || "Sin nombre"}
+                {formatFullName(user.displayName, user.lastName) || "Sin nombre"}
               </h1>
               <p className="text-gray-600 mt-1">{user.email}</p>
             </div>
@@ -524,7 +526,7 @@ const UsuarioDetailPage: React.FC = () => {
             <div>
               <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
                 <User size={16} className="inline mr-2" />
-                Nombre Completo
+                Nombre(s)
               </label>
               <input
                 type="text"
@@ -534,6 +536,23 @@ const UsuarioDetailPage: React.FC = () => {
                 onChange={handleProfileInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
                 placeholder="Nombre del empleado"
+                disabled={savingProfile}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                <User size={16} className="inline mr-2" />
+                Apellidos
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={editedUser.lastName || ""}
+                onChange={handleProfileInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent"
+                placeholder="Apellidos del empleado"
                 disabled={savingProfile}
               />
             </div>

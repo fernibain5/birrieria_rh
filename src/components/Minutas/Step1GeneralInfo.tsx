@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { getAllUsers } from '../../services/userService';
 import { UserProfile } from '../../types/auth';
 import { useBranchLock } from '../../hooks/useBranchLock';
+import { formatFullName } from '../../utils/formatName';
 
 interface AreaDetail {
   area: string;
@@ -160,7 +161,7 @@ const Step1GeneralInfo: React.FC<Step1Props> = ({ generalInfo, setGeneralInfo, t
     const selectedNames = selectedUids
       .map(uid => {
         const user = admins.find(admin => admin.uid === uid);
-        return user ? (user.displayName || user.email || user.uid) : '';
+        return user ? (formatFullName(user.displayName, user.lastName) || user.email || user.uid) : '';
       })
       .filter(Boolean);
 
@@ -352,7 +353,7 @@ const Step1GeneralInfo: React.FC<Step1Props> = ({ generalInfo, setGeneralInfo, t
                                 onChange={() => toggleResponsible(idx, user.uid)}
                                 className="h-4 w-4"
                               />
-                              <span className="truncate">{user.displayName || user.email}</span>
+                              <span className="truncate">{formatFullName(user.displayName, user.lastName) || user.email}</span>
                             </label>
                           );
                         })

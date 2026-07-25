@@ -19,6 +19,7 @@ import { useBranchLock } from "../hooks/useBranchLock";
 import AddUserModal from "../components/Users/AddUserModal";
 import ManageRolesModal from "../components/Users/ManageRolesModal";
 import BranchDropdown from "../components/ui/BranchDropdown";
+import { formatFullName } from "../utils/formatName";
 
 const UsuariosPage: React.FC = () => {
   const { isAdmin, isManager } = useAuth();
@@ -92,7 +93,7 @@ const UsuariosPage: React.FC = () => {
     .filter((user) => !user.branch || user.branch === effectiveBranch)
     .filter((user) =>
       normalizedNameFilter
-        ? (user.displayName || user.email)
+        ? (formatFullName(user.displayName, user.lastName) || user.email)
             .toLowerCase()
             .includes(normalizedNameFilter)
         : true
@@ -317,7 +318,7 @@ const UsuariosPage: React.FC = () => {
                               </div>
                               <div className="ml-4">
                                 <div className="text-sm font-medium text-gray-900">
-                                  {user.displayName || "Sin nombre"}
+                                  {formatFullName(user.displayName, user.lastName) || "Sin nombre"}
                                 </div>
                                 <div className="text-sm text-gray-500">
                                   ID: {user.uid.substring(0, 8)}...
