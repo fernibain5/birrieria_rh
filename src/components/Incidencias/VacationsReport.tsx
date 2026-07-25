@@ -4,7 +4,7 @@ import { getVacationRequests } from '../../services/vacationService';
 import type { AttendanceEmployee, VacationRequest } from '../../types/Attendance';
 import { vacationDaysForSeniority, getAnniversaryWindow } from '../../utils/vacationUtils';
 import { localDateKey } from '../../utils/attendanceStatus';
-import { formatFullName } from '../../utils/formatName';
+import { formatLastNameFirst, compareByLastNameFirst } from '../../utils/formatName';
 import ApproveVacationModal from './ApproveVacationModal';
 
 function formatDate(d: Date): string {
@@ -43,15 +43,15 @@ const VacationsReport: React.FC<VacationsReportProps> = ({
   }, [restaurantId, refreshKey]);
 
   const displayName = (emp: AttendanceEmployee) =>
-    formatFullName(emp.linkedUser?.displayName, emp.linkedUser?.lastName) || emp.name;
+    formatLastNameFirst(emp.linkedUser?.displayName, emp.linkedUser?.lastName) || emp.name;
 
   // Same "linked users only" rule as the other Incidencias reports, sorted
-  // by the same admin-defined sortOrder so every report agrees.
+  // by last name ascending (no-last-name entries last) so every report agrees.
   const eligible = useMemo(
     () =>
       employees
         .filter((e) => e.isActive && e.linkedUser)
-        .sort((a, b) => a.sortOrder - b.sortOrder || displayName(a).localeCompare(displayName(b))),
+        .sort((a, b) => compareByLastNameFirst(a.linkedUser ?? {}, b.linkedUser ?? {})),
     [employees],
   );
 

@@ -134,7 +134,7 @@ export const ContractSelectionCard: React.FC<ContractSelectionCardProps> = ({ ty
   const info = contractInfo[type];
 
   return (
-    <div 
+    <div
       className={`bg-white rounded-xl shadow-lg border border-slate-200 p-8 cursor-pointer transition-all duration-200 hover:shadow-xl ${info.colorClasses.border} hover:scale-[1.02]`}
       onClick={() => onSelect(type)}
     >
@@ -165,7 +165,7 @@ export const ContractSelectionCard: React.FC<ContractSelectionCardProps> = ({ ty
           }}
           className="w-full px-6 py-3 bg-gradient-to-r from-brand-primary to-brand-secondary hover:from-brand-primaryHover hover:to-brand-secondaryHover text-white rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
         >
-          Crear Nuevo Contrato
+          Crear Nuevo
         </button>
       </div>
     </div>

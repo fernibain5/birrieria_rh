@@ -8,6 +8,7 @@ import CalendarPage from './pages/CalendarPage';
 import MinutasPage from './pages/MinutasPage';
 import HistorialMinutasPage from './pages/HistorialMinutasPage';
 import RecursosPage from './pages/RecursosPage';
+import OrganigramaPage from './pages/OrganigramaPage';
 import ReglamentoPage from './pages/ReglamentoPage';
 import UsuariosPage from './pages/UsuariosPage';
 import UsuarioDetailPage from './pages/UsuarioDetailPage';
@@ -39,6 +40,7 @@ function App() {
             <Route path="minutas" element={<MinutasPage />} />
             <Route path="historial-minutas" element={<HistorialMinutasPage />} />
             <Route path="recursos" element={<RecursosPage />} />
+            <Route path="organigrama" element={<OrganigramaPage />} />
             <Route path="reglamento" element={<ReglamentoPage />} />
             <Route
               path="contratos"

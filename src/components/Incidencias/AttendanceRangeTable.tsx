@@ -9,7 +9,7 @@ import {
   getBranchSchedule,
   groupRecordsByEmployeeDay,
 } from '../../utils/attendanceStatus';
-import { formatFullName } from '../../utils/formatName';
+import { formatLastNameFirst, compareByLastNameFirst } from '../../utils/formatName';
 
 interface RangeCounters {
   retardos: number;
@@ -130,7 +130,7 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
   const schedule = useMemo(() => getBranchSchedule(branchName), [branchName]);
 
   const displayName = (emp: AttendanceEmployee) =>
-    formatFullName(emp.linkedUser?.displayName, emp.linkedUser?.lastName) || emp.name;
+    formatLastNameFirst(emp.linkedUser?.displayName, emp.linkedUser?.lastName) || emp.name;
 
   const daysInRange = useMemo(
     () => eachDayOfInterval({ start: new Date(rangeStartMs), end: new Date(rangeEndMs) }),
@@ -142,7 +142,7 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
   const rows = useMemo(() => {
     const active = employees
       .filter((e) => e.isActive && e.linkedUser)
-      .sort((a, b) => a.sortOrder - b.sortOrder || displayName(a).localeCompare(displayName(b)));
+      .sort((a, b) => compareByLastNameFirst(a.linkedUser ?? {}, b.linkedUser ?? {}));
 
     return active.map((emp) => {
       const counters = emptyCounters();

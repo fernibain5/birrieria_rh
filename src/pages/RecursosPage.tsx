@@ -34,7 +34,13 @@ import {
   uploadResource,
 } from "../services/resourceService";
 import { Resource } from "../types/resource";
-import { FilePreview, formatFileSize, getFileIcon } from "../components/FilePreview";
+import {
+  DocxPreviewModal,
+  FilePreview,
+  formatFileSize,
+  getFileIcon,
+  isWordFile,
+} from "../components/FilePreview";
 import { downloadFile } from "../utils/downloadFile";
 
 type ResourceView = "general" | "admin";
@@ -100,6 +106,7 @@ interface ResourceCardProps {
   isDownloading: boolean;
   onDelete: (resource: Resource) => void;
   onDownload: (resource: Resource) => void;
+  onPreview: (resource: Resource) => void;
   resource: Resource;
 }
 
@@ -109,8 +116,10 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
   isDownloading,
   onDelete,
   onDownload,
+  onPreview,
   resource,
 }) => {
+  const isDocx = isWordFile(resource.originalName, resource.contentType);
   const ResourceIcon = getResourceIcon(resource);
   const isBusy = isDownloading || isDeleting;
   const {
@@ -167,12 +176,16 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
           type="button"
           onClick={() => {
             if (!isBusy) {
-              onDownload(resource);
+              if (isDocx) {
+                onPreview(resource);
+              } else {
+                onDownload(resource);
+              }
             }
           }}
           disabled={isBusy}
           className="mt-4 block h-64 w-full overflow-hidden rounded-md border border-gray-200 bg-gray-50 text-left focus:outline-none focus:ring-2 focus:ring-brand-secondary disabled:cursor-not-allowed disabled:opacity-70 sm:h-72"
-          title="Descargar recurso"
+          title={isDocx ? "Vista previa" : "Descargar recurso"}
         >
           <FilePreview
             fileUrl={resource.fileUrl}
@@ -238,6 +251,7 @@ const RecursosPage: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [previewResource, setPreviewResource] = useState<Resource | null>(null);
   const [error, setError] = useState("");
   const [uploadDebugInfo, setUploadDebugInfo] = useState<UploadDebugInfo | null>(null);
   const sensors = useSensors(
@@ -634,6 +648,7 @@ const RecursosPage: React.FC = () => {
                     isDownloading={downloadingId === resource.id}
                     onDelete={handleDelete}
                     onDownload={handleDownload}
+                    onPreview={setPreviewResource}
                   />
                 ))}
               </div>
@@ -641,6 +656,15 @@ const RecursosPage: React.FC = () => {
           </DndContext>
         )}
       </div>
+
+      <DocxPreviewModal
+        isOpen={!!previewResource}
+        fileUrl={previewResource?.fileUrl ?? ""}
+        fileName={previewResource?.originalName || previewResource?.fileName || ""}
+        onClose={() => setPreviewResource(null)}
+        onDownload={() => previewResource && handleDownload(previewResource)}
+        isDownloading={!!previewResource && downloadingId === previewResource.id}
+      />
     </div>
   );
 };

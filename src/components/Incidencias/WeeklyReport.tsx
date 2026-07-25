@@ -11,7 +11,7 @@ import {
   getBranchSchedule,
   groupRecordsByEmployeeDay,
 } from '../../utils/attendanceStatus';
-import { formatFullName } from '../../utils/formatName';
+import { formatLastNameFirst, compareByLastNameFirst } from '../../utils/formatName';
 import { useAuth } from '../../contexts/AuthContext';
 import JustifyAbsenceModal from './JustifyAbsenceModal';
 
@@ -145,12 +145,12 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
   const schedule = useMemo(() => getBranchSchedule(branchName), [branchName]);
 
   const displayName = (emp: AttendanceEmployee) =>
-    formatFullName(emp.linkedUser?.displayName, emp.linkedUser?.lastName) || emp.name;
+    formatLastNameFirst(emp.linkedUser?.displayName, emp.linkedUser?.lastName) || emp.name;
 
   const rows = useMemo(() => {
     const active = employees
       .filter((e) => e.isActive && e.linkedUser)
-      .sort((a, b) => a.sortOrder - b.sortOrder || displayName(a).localeCompare(displayName(b)));
+      .sort((a, b) => compareByLastNameFirst(a.linkedUser ?? {}, b.linkedUser ?? {}));
     if (!onlyWithRecords) return active;
     return active.filter((e) => (byEmployeeDay.get(e.id)?.size ?? 0) > 0);
   }, [employees, byEmployeeDay, onlyWithRecords]);
