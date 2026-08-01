@@ -56,7 +56,7 @@ const DEFAULT_NAV_ITEMS: NavItemDef[] = [
     name: "Minutas",
     path: "/dashboard/minutas",
     icon: <FileText size={20} />,
-    requiresManager: false,
+    requiresManager: true,
   },
   {
     name: "Historial Minutas",

@@ -94,7 +94,7 @@ interface UploadDebugInfo {
     size: number;
     type: string;
   };
-  isAdmin: boolean;
+  isManager: boolean;
   resourceName: string;
   adminOnly: boolean;
   timestamp: string;
@@ -240,7 +240,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
 };
 
 const RecursosPage: React.FC = () => {
-  const { currentUser, isAdmin } = useAuth();
+  const { currentUser, isManager } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [resources, setResources] = useState<Resource[]>([]);
   const [fileName, setFileName] = useState("");
@@ -306,7 +306,7 @@ const RecursosPage: React.FC = () => {
   const handleUpload = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!currentUser || !isAdmin || !selectedFile || !fileName.trim()) {
+    if (!currentUser || !isManager || !selectedFile || !fileName.trim()) {
       const blockedDebugInfo = {
         currentUserUid: currentUser?.uid,
         file: selectedFile
@@ -316,7 +316,7 @@ const RecursosPage: React.FC = () => {
             type: selectedFile.type || "application/octet-stream",
           }
           : undefined,
-        isAdmin,
+        isManager,
         resourceName: fileName.trim(),
         adminOnly,
         stage: "blocked-before-upload",
@@ -335,7 +335,7 @@ const RecursosPage: React.FC = () => {
         size: selectedFile.size,
         type: selectedFile.type || "application/octet-stream",
       },
-      isAdmin,
+      isManager,
       resourceName: fileName.trim(),
       adminOnly,
       timestamp: new Date().toISOString(),
@@ -396,7 +396,7 @@ const RecursosPage: React.FC = () => {
       setDeletingId(resource.id);
       setError("");
       await deleteResource(resource);
-      const visibleResources = getVisibleResources(resources, isAdmin, activeView);
+      const visibleResources = getVisibleResources(resources, isManager, activeView);
       const remainingVisibleResources = visibleResources
         .filter((currentResource) => currentResource.id !== resource.id)
         .map((currentResource, index) => ({
@@ -428,11 +428,11 @@ const RecursosPage: React.FC = () => {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (!isAdmin || !over || active.id === over.id) {
+    if (!isManager || !over || active.id === over.id) {
       return;
     }
 
-    const visibleResources = getVisibleResources(resources, isAdmin, activeView);
+    const visibleResources = getVisibleResources(resources, isManager, activeView);
     const oldIndex = visibleResources.findIndex((resource) => resource.id === active.id);
     const newIndex = visibleResources.findIndex((resource) => resource.id === over.id);
 
@@ -467,7 +467,7 @@ const RecursosPage: React.FC = () => {
     }
   };
 
-  const visibleResources = getVisibleResources(resources, isAdmin, activeView);
+  const visibleResources = getVisibleResources(resources, isManager, activeView);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -503,7 +503,7 @@ const RecursosPage: React.FC = () => {
           </div>
         )}
 
-        {isAdmin && (
+        {isManager && (
           <form onSubmit={handleUpload} className="mb-8 bg-white rounded-lg shadow-sm p-6">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -584,7 +584,7 @@ const RecursosPage: React.FC = () => {
           </form>
         )}
 
-        {isAdmin && (
+        {isManager && (
           <div className="mb-6 inline-flex rounded-md border border-gray-200 bg-white p-1 shadow-sm">
             <button
               type="button"
@@ -621,7 +621,7 @@ const RecursosPage: React.FC = () => {
               No hay recursos disponibles
             </h2>
             <p className="text-gray-600">
-              {isAdmin
+              {isManager
                 ? activeView === "admin"
                   ? "Sube un archivo marcado como solo administradores para verlo aqui."
                   : "Sube el primer archivo general para compartirlo con el equipo."
@@ -643,7 +643,7 @@ const RecursosPage: React.FC = () => {
                   <ResourceCard
                     key={resource.id}
                     resource={resource}
-                    isAdmin={isAdmin}
+                    isAdmin={isManager}
                     isDeleting={deletingId === resource.id}
                     isDownloading={downloadingId === resource.id}
                     onDelete={handleDelete}

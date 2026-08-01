@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { eachDayOfInterval } from 'date-fns';
 import { getAllAttendance, getJustifiedAbsences } from '../../services/attendanceApiService';
 import { getAllEvents } from '../../services/eventService';
+import { getVacationRequests } from '../../services/vacationService';
 import type { AttendanceEmployee } from '../../types/Attendance';
 import {
   localDateKey,
   classifyDay,
   getBranchSchedule,
   groupRecordsByEmployeeDay,
+  buildVacationDateSet,
 } from '../../utils/attendanceStatus';
 import { formatLastNameFirst, compareByLastNameFirst } from '../../utils/formatName';
 
@@ -17,10 +19,18 @@ interface RangeCounters {
   faltasJustificadas: number;
   diasTrabajados: number;
   descansos: number;
+  vacaciones: number;
 }
 
 function emptyCounters(): RangeCounters {
-  return { retardos: 0, faltasInjustificadas: 0, faltasJustificadas: 0, diasTrabajados: 0, descansos: 0 };
+  return {
+    retardos: 0,
+    faltasInjustificadas: 0,
+    faltasJustificadas: 0,
+    diasTrabajados: 0,
+    descansos: 0,
+    vacaciones: 0,
+  };
 }
 
 /**
@@ -56,6 +66,7 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [holidayDates, setHolidayDates] = useState<Set<string>>(new Set());
   const [justifiedDates, setJustifiedDates] = useState<Set<string>>(new Set());
+  const [vacationDates, setVacationDates] = useState<Set<string>>(new Set());
 
   const rangeStartMs = rangeStart.getTime();
   const rangeEndMs = rangeEnd.getTime();
@@ -125,6 +136,20 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
     };
   }, [restaurantId, rangeStartMs, rangeEndMs, refreshKey]);
 
+  useEffect(() => {
+    let cancelled = false;
+    getVacationRequests(restaurantId)
+      .then((list) => {
+        if (!cancelled) setVacationDates(buildVacationDateSet(list));
+      })
+      .catch(() => {
+        // non-critical; counts fall back to no vacation-awareness until reloaded
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId, refreshKey]);
+
   const byEmployeeDay = useMemo(() => groupRecordsByEmployeeDay(records), [records]);
 
   const schedule = useMemo(() => getBranchSchedule(branchName), [branchName]);
@@ -160,6 +185,7 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
           restDayNames: emp.linkedUser?.restDays,
           jsDay: day.getDay(),
           isJustified: justifiedDates.has(`${emp.id}:${dateKey}`),
+          isOnVacation: emp.linkedUser ? vacationDates.has(`${emp.linkedUser.id}:${dateKey}`) : false,
           schedule,
         });
 
@@ -183,13 +209,25 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
           case 'descanso':
             counters.descansos++;
             break;
+          case 'vacaciones':
+            counters.vacaciones++;
+            break;
           // 'future' can't occur (already skipped above); diaInhabil* can't
           // occur (isHoliday is forced false — holidays are skipped above).
         }
       }
       return { emp, counters };
     });
-  }, [employees, daysInRange, byEmployeeDay, holidayDates, justifiedDates, todayKey, schedule]);
+  }, [
+    employees,
+    daysInRange,
+    byEmployeeDay,
+    holidayDates,
+    justifiedDates,
+    vacationDates,
+    todayKey,
+    schedule,
+  ]);
 
   return (
     <>
@@ -205,13 +243,14 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
               <th className="pb-3 px-2 font-semibold text-gray-600 text-center">Faltas Justificadas</th>
               <th className="pb-3 px-2 font-semibold text-gray-600 text-center">Días trabajados</th>
               <th className="pb-3 px-2 font-semibold text-gray-600 text-center">Descansos</th>
+              <th className="pb-3 px-2 font-semibold text-gray-600 text-center">Vacaciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b border-gray-100">
-                  {Array.from({ length: 6 }).map((_, j) => (
+                  {Array.from({ length: 7 }).map((_, j) => (
                     <td key={j} className="py-3 px-2">
                       <div className="animate-pulse bg-gray-200 rounded h-4 w-16" />
                     </td>
@@ -220,7 +259,7 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
               ))
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-10 text-center text-gray-400">
+                <td colSpan={7} className="py-10 text-center text-gray-400">
                   No hay empleados que mostrar para {emptyLabel}.
                 </td>
               </tr>
@@ -235,6 +274,7 @@ const AttendanceRangeTable: React.FC<AttendanceRangeTableProps> = ({
                   <td className="py-2 px-2 text-center">{counters.faltasJustificadas}</td>
                   <td className="py-2 px-2 text-center">{counters.diasTrabajados}</td>
                   <td className="py-2 px-2 text-center">{counters.descansos}</td>
+                  <td className="py-2 px-2 text-center">{counters.vacaciones}</td>
                 </tr>
               ))
             )}

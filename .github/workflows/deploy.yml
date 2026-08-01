@@ -1,0 +1,12 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Run existing deploy script
+        run: bash ~/deploy-birrieria-rh.sh

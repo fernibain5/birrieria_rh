@@ -37,7 +37,14 @@ function App() {
 
             {/* Dashboard pages */}
             <Route path="calendario" element={<CalendarPage />} />
-            <Route path="minutas" element={<MinutasPage />} />
+            <Route
+              path="minutas"
+              element={
+                <ProtectedRoute managerOnly>
+                  <MinutasPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="historial-minutas" element={<HistorialMinutasPage />} />
             <Route path="recursos" element={<RecursosPage />} />
             <Route path="organigrama" element={<OrganigramaPage />} />

@@ -1,6 +1,30 @@
+import type { VacationRequest } from '../types/Attendance';
+
 /** Local calendar date as YYYY-MM-DD — same technique the old groupByDay used. */
 export function localDateKey(date: Date): string {
   return date.toLocaleDateString('en-CA');
+}
+
+/**
+ * Expands approved vacation requests into a `${userId}:${dateKey}` set, one
+ * entry per calendar day in [startDate, endDate] (inclusive). Every
+ * VacationRequest is already approved — there is no pending state, the
+ * record is only created once an admin/gerente approves it (see
+ * ApproveVacationModal) — so no status filtering is needed here.
+ */
+export function buildVacationDateSet(requests: VacationRequest[]): Set<string> {
+  const set = new Set<string>();
+  for (const req of requests) {
+    const end = new Date(`${req.endDate}T00:00:00`);
+    for (
+      let d = new Date(`${req.startDate}T00:00:00`);
+      d.getTime() <= end.getTime();
+      d.setDate(d.getDate() + 1)
+    ) {
+      set.add(`${req.userId}:${localDateKey(d)}`);
+    }
+  }
+  return set;
 }
 
 /** Minutes since local midnight, e.g. 7:30am → 450. */
@@ -12,8 +36,8 @@ export function minutesSinceMidnight(iso: string): number {
 // ─── Attendance statuses ─────────────────────────────────────────────────────
 // Each branch has its own shift start / retardo cutoff, but shares the same
 // shift end. "Descanso" is assigned when the day matches one of the linked
-// user's restDays. "Vacaciones" has no data source yet — it's shown in the
-// legend but never assigned by classifyDay.
+// user's restDays. "Vacaciones" is assigned when the day falls inside an
+// approved VacationRequest range for that user (see buildVacationDateSet).
 
 export interface BranchSchedule {
   shiftStart: number; // on time through this minute-of-day (inclusive)
@@ -72,7 +96,8 @@ export const DIA_BY_JS_DAY = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueve
 /**
  * Classifies a single employee-day into a status, given its punches and
  * context. Mirrors the exact branch order used everywhere this is checked:
- * holiday → future → rest day → falta → time-based punch classification.
+ * holiday → future → vacation → rest day → falta → time-based punch
+ * classification.
  */
 export function classifyDay(params: {
   recs: Array<{ checkedAt: string }>; // sorted ascending
@@ -82,9 +107,11 @@ export function classifyDay(params: {
   restDayNames: string[] | null | undefined;
   jsDay: number; // Date#getDay()
   isJustified: boolean;
+  isOnVacation: boolean;
   schedule: BranchSchedule;
 }): StatusKey | 'future' {
-  const { recs, dateKey, todayKey, isHoliday, restDayNames, jsDay, isJustified, schedule } = params;
+  const { recs, dateKey, todayKey, isHoliday, restDayNames, jsDay, isJustified, isOnVacation, schedule } =
+    params;
 
   if (isHoliday) {
     return recs.length > 0 ? 'diaInhabilLaborado' : 'diaInhabilNoLaborado';
@@ -92,6 +119,8 @@ export function classifyDay(params: {
   if (recs.length === 0) {
     // A day that hasn't happened yet is not an absence
     if (dateKey > todayKey) return 'future';
+    // An approved vacation day is not an absence either
+    if (isOnVacation) return 'vacaciones';
     // One of the employee's scheduled rest days is not an absence either
     if (restDayNames?.includes(DIA_BY_JS_DAY[jsDay])) return 'descanso';
     return isJustified ? 'faltaJustificada' : 'faltaInjustificada';

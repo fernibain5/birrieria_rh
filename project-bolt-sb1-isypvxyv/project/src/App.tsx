@@ -61,7 +61,7 @@ function App() {
                 onClick={startNew}
                 className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"
               >
-                Crear Nuevo Contrato
+                Crear Nuevo
               </button>
               <button
                 onClick={handleDownload}
@@ -116,11 +116,10 @@ function App() {
               <button
                 onClick={prevStep}
                 disabled={currentStep === 1}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
-                  currentStep === 1
+                className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${currentStep === 1
                     ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                     : 'bg-slate-600 hover:bg-slate-700 text-white transform hover:scale-105'
-                }`}
+                  }`}
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span>Anterior</span>

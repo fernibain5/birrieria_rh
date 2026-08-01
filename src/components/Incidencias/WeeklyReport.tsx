@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getAllAttendance, getJustifiedAbsences } from '../../services/attendanceApiService';
 import { getAllEvents } from '../../services/eventService';
+import { getVacationRequests } from '../../services/vacationService';
 import type { AttendanceRecord, AttendanceEmployee } from '../../types/Attendance';
 import { startOfWeek, endOfWeek, addDays } from '../../utils/weekUtils';
 import {
@@ -10,6 +11,7 @@ import {
   classifyDay,
   getBranchSchedule,
   groupRecordsByEmployeeDay,
+  buildVacationDateSet,
 } from '../../utils/attendanceStatus';
 import { formatLastNameFirst, compareByLastNameFirst } from '../../utils/formatName';
 import { useAuth } from '../../contexts/AuthContext';
@@ -59,6 +61,7 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
   const [onlyWithRecords, setOnlyWithRecords] = useState(false);
   const [holidayDates, setHolidayDates] = useState<Set<string>>(new Set());
   const [justifiedDates, setJustifiedDates] = useState<Set<string>>(new Set());
+  const [vacationDates, setVacationDates] = useState<Set<string>>(new Set());
   const [justifyTarget, setJustifyTarget] = useState<{
     employeeId: number;
     employeeName: string;
@@ -135,6 +138,20 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
     };
   }, [restaurantId, weekStartMs, refreshKey]);
 
+  useEffect(() => {
+    let cancelled = false;
+    getVacationRequests(restaurantId)
+      .then((list) => {
+        if (!cancelled) setVacationDates(buildVacationDateSet(list));
+      })
+      .catch(() => {
+        // non-critical; cells fall back to no vacation-awareness until reloaded
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId, refreshKey]);
+
   const weekDays = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
     [weekStartMs], // eslint-disable-line react-hooks/exhaustive-deps
@@ -175,6 +192,7 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({
       restDayNames: emp.linkedUser?.restDays,
       jsDay: day.getDay(),
       isJustified: justifiedDates.has(`${emp.id}:${dateKey}`),
+      isOnVacation: emp.linkedUser ? vacationDates.has(`${emp.linkedUser.id}:${dateKey}`) : false,
       schedule,
     });
 
